@@ -66,7 +66,6 @@ var (
 			section:  struct{}{},
 			data:     struct{}{},
 			openData: struct{}{},
-			opener:   struct{}{},
 			closer:   struct{}{},
 		},
 		openData: {
