@@ -1,4 +1,4 @@
-package main
+package parser
 
 import (
 	"bufio"
@@ -76,7 +76,7 @@ var (
 	}
 )
 
-func parse(fileLocation string) (map[string]interface{}, error) {
+func Parse(fileLocation string) (map[string]interface{}, error) {
 
 	// initialise/reset
 	dataTree := make(map[string]interface{})
