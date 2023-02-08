@@ -132,67 +132,6 @@ var (
 	reItemPath = regexp.MustCompile("^econ/default_generated/([a-zA-Z0-9_-]+)(_light|_medium|_heavy)$")
 )
 
-func getItems(language, items map[string]interface{}) ([]*skin, error) {
-
-	//skins, err := getSkins(language, items)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	return getSkins(language, items["items_game"].(map[string]interface{}))
-}
-
-// extractWeaponSkins builds a map of all skins and the weapons that they are
-// available on.
-func extractWeaponSkins(items map[string]interface{}) (map[string]map[string]interface{}, error) {
-
-	skinsToWeapons := make(map[string]map[string]interface{})
-
-	for _, weaponSkin := range items["alternate_icons2"].(map[string]interface{})["weapon_icons"].(map[string]interface{}) {
-		path := weaponSkin.(map[string]interface{})["icon_path"].(string)
-
-		weapon, skin, err := splitIconPath(path)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %s", err, path)
-		}
-
-		if _, ok := skinsToWeapons[skin]; !ok {
-			skinsToWeapons[skin] = make(map[string]interface{})
-		}
-
-		skinsToWeapons[skin][weapon] = struct{}{}
-	}
-
-	return skinsToWeapons, nil
-}
-
-// splitIconPath will attempt to divide the provided "icon path" string into
-// a weapon id and a paintkit id.
-//
-// An error is returned when the string cannot be matched to the expected path
-// format.
-func splitIconPath(path string) (string, string, error) {
-
-	result := reItemPath.FindStringSubmatch(path)
-	if len(result) != 3 {
-		return "", "", errors.New("invalid path found")
-	}
-
-	fileParts := strings.Split(result[1], "_")
-	for i := 0; i < len(fileParts); i++ {
-
-		weapon := strings.Join(fileParts[:i], "_")
-
-		if _, ok := weaponNames[weapon]; !ok {
-			continue
-		}
-
-		return weapon, strings.Join(fileParts[i:], "_"), nil
-	}
-
-	return "", "", errors.New("unable to distinguish weapon and skin")
-}
-
 // getSkins provides a list of all skins from the provided language and items
 // maps.
 func getSkins(language, items map[string]interface{}) ([]*skin, error) {
@@ -207,7 +146,7 @@ func getSkins(language, items map[string]interface{}) ([]*skin, error) {
 	qualitites := getSkinQualities(items)
 
 	// make tokens lowercase (as the case doesn't always match between language and items)
-	tokens := mapToLower(language["lang"].(map[string]interface{})["Tokens"].(map[string]interface{}))
+	tokens := mapToLower(language)
 
 	kits, ok := items["paint_kits"].(map[string]interface{})
 	if !ok {
@@ -276,6 +215,104 @@ func getSkins(language, items map[string]interface{}) ([]*skin, error) {
 	return skins, nil
 }
 
+// extractWeaponSkins builds a map of all skins and the weapons that they are
+// available on.
+func extractWeaponSkins(items map[string]interface{}) (map[string]map[string]interface{}, error) {
+
+	skinsToWeapons := make(map[string]map[string]interface{})
+
+	for _, weaponSkin := range items["alternate_icons2"].(map[string]interface{})["weapon_icons"].(map[string]interface{}) {
+		path := weaponSkin.(map[string]interface{})["icon_path"].(string)
+
+		weapon, skin, err := splitIconPath(path)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %s", err, path)
+		}
+
+		if _, ok := skinsToWeapons[skin]; !ok {
+			skinsToWeapons[skin] = make(map[string]interface{})
+		}
+
+		skinsToWeapons[skin][weapon] = struct{}{}
+	}
+
+	return skinsToWeapons, nil
+}
+
+// splitIconPath will attempt to divide the provided "icon path" string into
+// a weapon id and a paintkit id.
+//
+// An error is returned when the string cannot be matched to the expected path
+// format.
+func splitIconPath(path string) (string, string, error) {
+
+	result := reItemPath.FindStringSubmatch(path)
+	if len(result) != 3 {
+		return "", "", errors.New("invalid path found")
+	}
+
+	fileParts := strings.Split(result[1], "_")
+	for i := 0; i < len(fileParts); i++ {
+
+		weapon := strings.Join(fileParts[:i], "_")
+
+		if _, ok := weaponNames[weapon]; !ok {
+			continue
+		}
+
+		return weapon, strings.Join(fileParts[i:], "_"), nil
+	}
+
+	return "", "", errors.New("unable to distinguish weapon and skin")
+}
+
+// getSkinQualities produces a mapping of "[skin]weapon" to available "special"
+// quality if one is possible, e.g. Souvenir or StatTrak.
+func getSkinQualities(items map[string]interface{}) map[string]skinQuality {
+
+	setQualities := make(map[string]skinQuality)
+
+	// loop through all items
+	for _, itemData := range items["items"].(map[string]interface{}) {
+
+		dataMap := itemData.(map[string]interface{})
+
+		// if item is not a case prefab
+		prefab, ok := dataMap["prefab"]
+		if !ok {
+			continue
+		}
+
+		// see if crate/set supports special skin qualities
+		quality, ok := prefabToQuality[prefab.(string)]
+		if !ok {
+			continue
+		}
+
+		// grab item set name for souvenir
+		if tags, ok := dataMap["tags"].(map[string]interface{}); ok {
+			if itemSet, ok := tags["ItemSet"].(map[string]interface{}); ok {
+				if setName, ok := itemSet["tag_value"].(string); ok {
+					setQualities[setName] = quality
+				}
+			}
+		}
+	}
+
+	// loop through all sets found and retrieve items
+	skinQualities := make(map[string]skinQuality)
+	for setName, quality := range setQualities {
+		for item, _ := range items["item_sets"].(map[string]interface{})[setName].(map[string]interface{})["items"].(map[string]interface{}) {
+			// TODO item is in format [gs_awp_hydra]weapon_awp - this needs to be considered
+			skinQualities[item] = quality
+		}
+	}
+
+	return skinQualities
+}
+
+// buildSkinMarketHashName takes the required attributes for a skin's market hash
+// name and formats it into the uniquely identifiable market hash name.
 func buildSkinMarketHashName(quality skinQuality, gun, skinName, wear string) string {
 
 	if quality != skinQualityNormal {
@@ -307,49 +344,4 @@ func mapToLower[T any](m map[string]T) map[string]T {
 	}
 
 	return nm
-}
-
-// TODO wip
-func getSkinQualities(items map[string]interface{}) map[string]skinQuality {
-
-	setQualities := make(map[string]skinQuality)
-
-	// loop through all items
-	for _, itemData := range items["items"].(map[string]interface{}) {
-
-		dataMap := itemData.(map[string]interface{})
-
-		// if item is not a souvenir case prefab
-		prefab, ok := dataMap["prefab"]
-		if !ok {
-			continue
-		}
-
-		quality, ok := prefabToQuality[prefab.(string)]
-		if !ok {
-			continue
-		}
-
-		// grab item set name for souvenir
-		if tags, ok := dataMap["tags"].(map[string]interface{}); ok {
-			if itemSet, ok := tags["ItemSet"].(map[string]interface{}); ok {
-				if setName, ok := itemSet["tag_value"].(string); ok {
-					setQualities[setName] = quality
-				}
-			}
-		}
-	}
-
-	// loop through all sets found and retrieve items
-	skinQualities := make(map[string]skinQuality)
-	for setName, quality := range setQualities {
-		for item, _ := range items["item_sets"].(map[string]interface{})[setName].(map[string]interface{})["items"].(map[string]interface{}) {
-			// TODO item is in format [gs_awp_hydra]weapon_awp - this needs to be considered
-			skinQualities[item] = quality
-		}
-	}
-
-	// TODO get StatTrak™ skins
-
-	return skinQualities
 }
