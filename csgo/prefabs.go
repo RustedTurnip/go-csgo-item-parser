@@ -2,17 +2,8 @@ package csgo
 
 import "errors"
 
-type itemType int
-
-const (
-	itemTypeUnknown itemType = iota
-	itemTypeWeapon
-	itemTypeGloves
-	itemTypeCrate
-)
-
 var (
-	// weaponPrefabPrefabs is a map of all prefabs that exist against weapon prefabs
+	// itemPrefabPrefabs is a map of all prefabs that exist against item prefabs
 	// that we need to track.
 	itemPrefabPrefabs = map[string]itemType{
 
@@ -32,6 +23,8 @@ var (
 	}
 )
 
+// itemPrefab represents a csgo prefab which is used to categorise item
+// types. e.g. melee, primary (both of which are weapons).
 type itemPrefab struct {
 	id                    string
 	parentPrefab          string
@@ -41,6 +34,7 @@ type itemPrefab struct {
 	itemType              itemType
 }
 
+// mapToItemPrefab converts the provided map (data) into a prefab object.
 func mapToItemPrefab(id string, data map[string]interface{}) *itemPrefab {
 
 	response := &itemPrefab{
@@ -69,6 +63,8 @@ func mapToItemPrefab(id string, data map[string]interface{}) *itemPrefab {
 	return response
 }
 
+// getItemPrefabs retrieves all required prefabs from the provided items
+// map and returns them in the format map[prefabId]itemPrefab.
 func getItemPrefabs(items map[string]interface{}) (map[string]*itemPrefab, error) {
 
 	response := make(map[string]*itemPrefab)
@@ -93,6 +89,9 @@ func getItemPrefabs(items map[string]interface{}) (map[string]*itemPrefab, error
 	return response, nil
 }
 
+// getTypeFromPrefab will traverse the prefab inheritence tree until a
+// recognisable prefab is found (or the end is reached) and it will
+// return the associated item type for the matched prefab.
 func getTypeFromPrefab(prefabId string, prefabs map[string]*itemPrefab) itemType {
 
 	// if provided prefab id is of recognised type, return type

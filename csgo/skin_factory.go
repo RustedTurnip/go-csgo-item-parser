@@ -8,6 +8,8 @@ import (
 	"github.com/rustedturnip/go-csgo-item-parser/entities"
 )
 
+// wear represents a specific category of skin wear, providing
+// its name, and the float range in which the category exists.
 type wear struct {
 	name     string
 	minValue float64
@@ -15,6 +17,7 @@ type wear struct {
 }
 
 var (
+	// wears holds the pre-defined skin floats for any csgo skin.
 	wears = []*wear{
 		{
 			name:     "Factory New",
@@ -44,6 +47,8 @@ var (
 	}
 )
 
+// getAllSkins returns a list of all CSGO skins based on the preprocessed data
+// stored within csgo.
 func (c *csgo) getAllSkins() ([]*entities.Skin, error) {
 
 	skins := make(map[string]*entities.Skin)
@@ -51,12 +56,12 @@ func (c *csgo) getAllSkins() ([]*entities.Skin, error) {
 	// build crate skins
 	for _, crate := range c.weaponCrates {
 
-		set, ok := c.weaponSets[crate.weaponSetId]
+		set, ok := c.weaponSets[crate.collectionId]
 		if !ok {
 			continue
 		}
 
-		containerName, err := c.language.lookup(crate.languageNameId) // TODO give weaponCrate a getLanguageId function
+		containerName, err := c.language.lookup(crate.languageNameId) // TODO give itemCrate a getLanguageId function
 		if err != nil {
 			return nil, err
 		}
@@ -108,7 +113,9 @@ func (c *csgo) getAllSkins() ([]*entities.Skin, error) {
 	return maps.Values(skins), nil
 }
 
-// TODO comment
+// weaponSetToSkins converts an itemPaintkitSet to a list of skins that are available
+// within it. qualityCapability is used to determine which skin qualities are available
+// for the skins (e.g. Souvenir).
 func (c *csgo) weaponSetToSkins(qualityCapability qualityCapability, set *itemPaintkitSet) ([]*entities.Skin, error) {
 
 	skins := make([]*entities.Skin, 0)
@@ -141,7 +148,8 @@ func (c *csgo) weaponSetToSkins(qualityCapability qualityCapability, set *itemPa
 	return skins, nil
 }
 
-// TODO comment
+// glovesSetToSkins converts the separately identified gloves (c.gloves) into a
+// list of skins.
 func (c *csgo) glovesSetToSkins(set *itemPaintkitSet) ([]*entities.Skin, error) {
 
 	skins := make([]*entities.Skin, 0)
@@ -174,8 +182,9 @@ func (c *csgo) glovesSetToSkins(set *itemPaintkitSet) ([]*entities.Skin, error) 
 	return skins, nil
 }
 
-// TODO comment
-func (c *csgo) paintkitToSkins(qualityCapability qualityCapability, item skinableItem, paintkit *paintkit) ([]*entities.Skin, error) {
+// paintkitToSkins combines an item with a paintkit to return a list of produced
+// skins.
+func (c *csgo) paintkitToSkins(qualityCapability qualityCapability, item skinnableItem, paintkit *paintkit) ([]*entities.Skin, error) {
 
 	skins := make([]*entities.Skin, 0)
 
@@ -206,7 +215,8 @@ func (c *csgo) paintkitToSkins(qualityCapability qualityCapability, item skinabl
 	return skins, nil
 }
 
-// TODO comment
+// getPaintkitAvailableWears returns a list of available wears for the provided
+// paintkit based on the paintkit's minimum and maximum float values.
 func getPaintkitAvailableWears(paintkit *paintkit) []*wear {
 
 	available := make([]*wear, 0)

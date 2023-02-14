@@ -4,6 +4,7 @@ import (
 	"errors"
 )
 
+// stickerkit represents a stickerkit object from the items_game file.
 type stickerkit struct {
 	id                    string
 	languageNameId        string
@@ -11,6 +12,7 @@ type stickerkit struct {
 	rarity                string
 }
 
+// mapToStickerkit converts the provided data map into a stickerkit object.
 func mapToStickerkit(data map[string]interface{}) (*stickerkit, error) {
 
 	response := &stickerkit{}
@@ -44,6 +46,8 @@ func mapToStickerkit(data map[string]interface{}) (*stickerkit, error) {
 	return response, nil
 }
 
+// getStickerkits retrieves all the stickerkits available in the provided items map
+// and returns them in the format map[stickerkitId]stickerkit.
 func getStickerkits(items map[string]interface{}) (map[string]*stickerkit, error) {
 
 	response := make(map[string]*stickerkit)

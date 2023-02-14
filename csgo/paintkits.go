@@ -11,7 +11,8 @@ const (
 	defaultMaxFloat float64 = 0.8
 )
 
-// TODO comment struct
+// paintkit represents the image details of a skin, i.e. the available float
+// range the skin can be in. Every entities.Skin has an associated paintkit.
 type paintkit struct {
 	id                    string
 	languageNameId        string
@@ -68,6 +69,8 @@ func mapToPaintkit(data map[string]interface{}) (*paintkit, error) {
 	return response, nil
 }
 
+// getPaintkits gathers all paintkits in the provided items data and returns them
+// as map[paintkitId]paintkit.
 func getPaintkits(items map[string]interface{}) (map[string]*paintkit, error) {
 
 	response := make(map[string]*paintkit)

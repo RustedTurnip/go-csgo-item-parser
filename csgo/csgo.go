@@ -3,14 +3,34 @@ package csgo
 import (
 	"errors"
 	"fmt"
-	"github.com/rustedturnip/go-csgo-item-parser/entities"
 	"strings"
+
+	"github.com/rustedturnip/go-csgo-item-parser/entities"
 )
 
+// GetAllItems is the main entrypoint of the csgo package and is responsible for
+// parsing the language and item data, and transforming it into the universal
+// entities.
+func GetAllItems(languageData, itemData map[string]interface{}) (*entities.Items, error) {
+
+	csgo, err := newCsgo(languageData, itemData)
+	if err != nil {
+		return nil, err
+	}
+
+	return csgo.getAllItems()
+}
+
+// language represents a csgo language file that provides the descriptions
+// and descriptive names of in game items.
 type language struct {
 	data map[string]interface{}
 }
 
+// lookup will return the string value (e.g. descriptive name) of the
+// provided identifier (key).
+//
+// If the key cannot be found, an error is returned.
 func (l *language) lookup(key string) (string, error) {
 
 	// remove pound sign from beginning of string
@@ -24,6 +44,8 @@ func (l *language) lookup(key string) (string, error) {
 	return val, nil
 }
 
+// newLanguage takes in the data map of an already parsed language file and
+// returns a language "client" that can be used to perform key lookups.
 func newLanguage(data map[string]interface{}) (*language, error) {
 
 	// check language base data exists
@@ -49,6 +71,8 @@ func newLanguage(data map[string]interface{}) (*language, error) {
 	return l, nil
 }
 
+// csgo is a representation of all csgo items that are relevant to interpreting
+// the game_items file.
 type csgo struct {
 	language *language
 
@@ -64,9 +88,12 @@ type csgo struct {
 	// items
 	weapons      map[string]*weapon
 	gloves       map[string]*gloves
-	weaponCrates map[string]*weaponCrate
+	weaponCrates map[string]*itemCrate
 }
 
+// getAllItems will perform the necessary joins of the already parsed
+// items from the items_game file and return more universally recognised
+// entities like skin, stickers etc.
 func (c *csgo) getAllItems() (*entities.Items, error) {
 	items := &entities.Items{}
 
@@ -80,6 +107,8 @@ func (c *csgo) getAllItems() (*entities.Items, error) {
 	return items, nil
 }
 
+// newCsgo represents the constructor for csgo and will perform the necessary
+// preprocessing of the language and item data.
 func newCsgo(languageData, itemData map[string]interface{}) (*csgo, error) {
 
 	language, err := newLanguage(languageData)
@@ -114,7 +143,7 @@ func newCsgo(languageData, itemData map[string]interface{}) (*csgo, error) {
 		return nil, err
 	}
 
-	sets, err := getWeaponSets(fileItems)
+	sets, err := getCollections(fileItems)
 	if err != nil {
 		return nil, err
 	}
@@ -192,14 +221,4 @@ func crawl[T any](m map[string]interface{}, key string) (T, error) {
 	}
 
 	return val, nil
-}
-
-func GetAllItems(languageData, itemData map[string]interface{}) (*entities.Items, error) {
-
-	csgo, err := newCsgo(languageData, itemData)
-	if err != nil {
-		return nil, err
-	}
-
-	return csgo.getAllItems()
 }

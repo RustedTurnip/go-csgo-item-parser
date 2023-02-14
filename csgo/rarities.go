@@ -2,7 +2,7 @@ package csgo
 
 import "fmt"
 
-// TODO comment this
+// rarity represents a csgo item rarity.
 type rarity struct {
 	id                      string
 	languageNameId          string
@@ -11,7 +11,7 @@ type rarity struct {
 	colourId                string
 }
 
-// TODO comment
+// mapToRarity converts the provided data map into a rarity object.
 func mapToRarity(id string, data map[string]interface{}) (*rarity, error) {
 
 	response := &rarity{
@@ -45,7 +45,8 @@ func mapToRarity(id string, data map[string]interface{}) (*rarity, error) {
 	return response, nil
 }
 
-// TODO comment
+// getRarities retrieves all rarities from the provided items data and returns them
+// in the format map[rarityId]rarity.
 func getRarities(items map[string]interface{}) (map[string]*rarity, error) {
 
 	response := make(map[string]*rarity)
