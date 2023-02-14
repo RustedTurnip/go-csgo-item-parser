@@ -1,0 +1,6 @@
+# IDEs
+vscode/
+.idea/
+
+# Testing
+test_data/
