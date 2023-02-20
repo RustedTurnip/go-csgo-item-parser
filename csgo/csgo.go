@@ -6,7 +6,9 @@ import (
 	"strings"
 )
 
-// TODO comment
+// New takes the required languageData and itemData maps (from csgo_english.txt and
+// items_game.txt respectively) and extracts the desired sub elements from them,
+// returning a fully instantiated Csgo.
 func New(languageData, itemData map[string]interface{}) (*Csgo, error) {
 	language, err := newLanguage(languageData)
 	if err != nil {
@@ -77,7 +79,7 @@ func newLanguage(data map[string]interface{}) (*language, error) {
 	return l, nil
 }
 
-// TODO comment
+// csgoItems provides a wrapper for the data from csgo_english.txt and items_game.txt.
 type csgoItems struct {
 	items    map[string]interface{}
 	language *language
@@ -92,20 +94,20 @@ type Csgo struct {
 	prefabs         map[string]*itemPrefab
 	clientLootLists map[string]*clientLootList
 
-	Rarities      map[string]*rarity       `json:"Rarities"`
+	Rarities      map[string]*Rarity       `json:"Rarities"`
 	Paintkits     map[string]*paintkit     `json:"Paintkits"`
 	Stickerkits   map[string]*stickerkit   `json:"Stickerkits"`
-	WeaponSets    map[string]*weaponSet    `json:"WeaponSets"`
-	CharacterSets map[string]*characterSet `json:"CharacterSets"`
+	WeaponSets    map[string]*WeaponSet    `json:"WeaponSets"`
+	CharacterSets map[string]*CharacterSet `json:"CharacterSets"`
 	KnifeSet      map[string][]string      `json:"KnifeSet"`
 	GloveSet      map[string][]string      `json:"GloveSet"`
 
 	// items
-	Guns            map[string]*weapon         `json:"Guns"`
-	Knives          map[string]*weapon         `json:"Knives"`
-	Gloves          map[string]*gloves         `json:"Gloves"`
-	WeaponCrates    map[string]*weaponCrate    `json:"WeaponCrates"`
-	StickerCapsules map[string]*stickerCapsule `json:"StickerCapsules"`
+	Guns            map[string]*Weapon         `json:"Guns"`
+	Knives          map[string]*Weapon         `json:"Knives"`
+	Gloves          map[string]*Gloves         `json:"Gloves"`
+	WeaponCrates    map[string]*WeaponCrate    `json:"WeaponCrates"`
+	StickerCapsules map[string]*StickerCapsule `json:"StickerCapsules"`
 }
 
 // newCsgo represents the constructor for Csgo and will perform the necessary
@@ -155,7 +157,7 @@ func newCsgo(items *csgoItems) (*Csgo, error) {
 
 	// Knives are not categorised into sets within the items_game.txt file,
 	// so they are handled separately.
-	knifeSet, err := items.getIconSet(mapTypeToMapInterface(itemEntities.knives))
+	knifeSet, err := items.getKnifeSet(mapTypeToMapInterface(itemEntities.knives))
 	if err != nil {
 		return nil, err
 	}
@@ -188,6 +190,12 @@ func newCsgo(items *csgoItems) (*Csgo, error) {
 	}, nil
 }
 
+var (
+	// errCrawlNotFound is used to distinguish an error from not being able to
+	// find the node at the provided path.
+	errCrawlNotFound = errors.New("the node at the provided path could not be found")
+)
+
 // crawlToType will traverse down the provided map (m) through the provided
 // path of keys (path) until reaching the last node in the path. It returns
 // the last node as the provided type (T), however will return an error if
@@ -209,7 +217,6 @@ func crawlToType[T any](m map[string]interface{}, path ...string) (T, error) {
 	}
 
 	return crawlToType[T](nested, path[1:]...)
-	// TODO return specific errors i.e. errNotFound and errUnexpectedType
 }
 
 // crawl will return the value at the provided key casting it to the provided
@@ -219,14 +226,21 @@ func crawl[T any](m map[string]interface{}, key string) (T, error) {
 
 	var empty T // equivalent of nil
 
-	val, ok := m[key].(T)
+	val, ok := m[key]
 	if !ok {
-		return empty, fmt.Errorf("couldn't find key %s in provided map", key)
+		return empty, errCrawlNotFound
 	}
 
-	return val, nil
+	tVal, ok := val.(T)
+	if !ok {
+		return empty, fmt.Errorf("could not convert value to provided type %T", empty)
+	}
+
+	return tVal, nil
 }
 
+// mapTypeToMapInterface will convert any provided map with a string as key
+// into a map of type map[string]interface{}.
 func mapTypeToMapInterface[T any](m map[string]T) map[string]interface{} {
 
 	response := make(map[string]interface{})

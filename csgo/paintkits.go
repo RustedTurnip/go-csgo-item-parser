@@ -83,7 +83,13 @@ func mapToPaintkit(data map[string]interface{}, language *language) (*paintkit, 
 // as map[paintkitId]paintkit.
 func (c *csgoItems) getPaintkits() (map[string]*paintkit, error) {
 
-	response := make(map[string]*paintkit)
+	response := map[string]*paintkit{
+		"vanilla": {
+			Id:       "vanilla",
+			MinFloat: defaultMinFloat,
+			MaxFloat: defaultMaxFloat,
+		},
+	}
 
 	rarities, err := crawlToType[map[string]interface{}](c.items, "paint_kits_rarity")
 	if err != nil {

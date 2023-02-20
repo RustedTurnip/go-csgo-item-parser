@@ -1,8 +1,7 @@
 package csgo
 
 import (
-	"errors"
-	"fmt"
+	"github.com/pkg/errors"
 	"strings"
 )
 
@@ -14,8 +13,8 @@ var (
 		"": itemTypeUnknown,
 
 		// Guns
-		"primary":       itemTypeWeaponGun,   // covers ay weapon that can be primary (e.g. smg)
-		"secondary":     itemTypeWeaponGun,   // covers any weapon that can be secondary (e.g. pistol)
+		"primary":       itemTypeWeaponGun,   // covers ay Weapon that can be primary (e.g. smg)
+		"secondary":     itemTypeWeaponGun,   // covers any Weapon that can be secondary (e.g. pistol)
 		"melee_unusual": itemTypeWeaponKnife, // covers all tradable Knives
 
 		// Gloves
@@ -43,10 +42,6 @@ type itemPrefab struct {
 // mapToItemPrefab converts the provided map (data) into a prefab object.
 func mapToItemPrefab(id string, data map[string]interface{}, language *language) (*itemPrefab, error) {
 
-	if id == "atlanta2017_sticker_capsule_prefab" {
-		fmt.Println()
-	}
-
 	response := &itemPrefab{
 		id:       id,
 		itemType: itemPrefabPrefabs[id],
@@ -57,17 +52,13 @@ func mapToItemPrefab(id string, data map[string]interface{}, language *language)
 	}
 
 	if val, ok := data["item_name"].(string); ok {
-		lang, err := language.lookup(val)
-		if err == nil {
-			response.name = lang
-		}
+		lang, _ := language.lookup(val)
+		response.name = lang
 	}
 
 	if val, ok := data["item_description"].(string); ok {
-		lang, err := language.lookup(val)
-		if err == nil {
-			response.description = lang
-		}
+		lang, _ := language.lookup(val)
+		response.description = lang
 	}
 
 	response.itemType = getPrefabItemType(id, data)
@@ -83,7 +74,7 @@ func (c *csgoItems) getItemPrefabs() (map[string]*itemPrefab, error) {
 
 	prefabs, err := crawlToType[map[string]interface{}](c.items, "prefabs")
 	if err != nil {
-		return nil, errors.New("item data is missing prefabs") // TODO improve error
+		return nil, errors.Wrap(err, "item data is missing prefabs")
 	}
 
 	for prefabId, prefab := range prefabs {

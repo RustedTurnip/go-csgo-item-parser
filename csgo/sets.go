@@ -1,8 +1,8 @@
 package csgo
 
 import (
-	"errors"
 	"fmt"
+	"github.com/pkg/errors"
 	"regexp"
 	"strings"
 )
@@ -13,108 +13,55 @@ var (
 	weaponPaintkitRe = regexp.MustCompile("^\\[([a-zA-Z0-9_\\-)]+)\\]([a-zA-Z0-9_\\-]+)$")
 )
 
-// itemPaintkit represents an itemId paintkitId pairing.
-type itemPaintkit struct {
-	itemId     string
-	paintkitId string
+// WeaponSet represents a WeaponSet of items from the items_game file.
+type WeaponSet struct {
+	Id          string
+	Name        string
+	Description string
+	Items       map[string]string
 }
 
-// itemPaintkitSet is used to manage a weaponSet (set) of itemPaintKits such that
-// any pair is only stored once.
-type itemPaintkitSet struct {
-	itemPaintkits map[string]*itemPaintkit
-}
-
-// add stores an itemPaintkit pair in the itemPaintkitSet if the same pair
-// hasn't already been added (otherwise, noop).
-func (ip *itemPaintkitSet) add(itemId, paintkitId string) {
-
-	// serialise ids to create unique identifier
-	id := fmt.Sprintf("%s_%s", itemId, paintkitId)
-
-	if ip.itemPaintkits == nil {
-		ip.itemPaintkits = make(map[string]*itemPaintkit)
-	}
-
-	// if combination already, no need to add
-	if _, ok := ip.itemPaintkits[id]; ok {
-		return
-	}
-
-	// store combination
-	ip.itemPaintkits[id] = &itemPaintkit{
-		itemId:     itemId,
-		paintkitId: paintkitId,
-	}
-}
-
-// forEachItemPaintkit provides a way to iterate over the contents of a
-// itemPaintkitSet where fn allows you to provide the action to be performed
-// upon each itemPaintkit pair.
-//
-// If fn returns an error, the loop will break early and the error is bubbled
-// up and returned by forEachItemPaintkit.
-func (ip *itemPaintkitSet) forEachItemPaintkit(fn func(itemId, paintkitId string) error) error {
-
-	for _, itemPaintkit := range ip.itemPaintkits {
-		err := fn(itemPaintkit.itemId, itemPaintkit.paintkitId)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// weaponSet represents a weaponSet of items from the items_game file.
-type weaponSet struct {
-	id          string
-	name        string
-	description string
-	items       map[string]string
-}
-
-// mapToWeaponSet converts the provided map into a weaponSet providing
+// mapToWeaponSet converts the provided map into a WeaponSet providing
 // all required parameters are present and of the correct type.
 //
 // A response of nil, nil is returned when the provided set doesn't contain
 // any weapons, e.g. a character set is provided.
-func mapToWeaponSet(id string, data map[string]interface{}, language *language) (*weaponSet, error) {
+func mapToWeaponSet(id string, data map[string]interface{}, language *language) (*WeaponSet, error) {
 
-	response := &weaponSet{
-		id:    id,
-		items: make(map[string]string),
+	response := &WeaponSet{
+		Id:    id,
+		Items: make(map[string]string),
 	}
 
 	// get language Name Id
 	if val, err := crawlToType[string](data, "name"); err != nil {
-		return nil, errors.New("language Name Id (name) missing from weaponSet")
+		return nil, errors.Wrap(err, "language Name Id (name) missing from WeaponSet")
 	} else {
 
 		lang, err := language.lookup(val)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, fmt.Sprintf("unable to lookup WeaponSet's name (%s)", val))
 		}
 
-		response.name = lang
+		response.Name = lang
 	}
 
 	// get language Description Id
 	if val, err := crawlToType[string](data, "set_description"); err != nil {
-		return nil, errors.New("language Description Id (description_string) missing from weaponSet")
+		return nil, errors.Wrap(err, fmt.Sprintf("language Description Id (description_string) missing from WeaponSet (%s)", response.Id))
 	} else {
 
 		lang, err := language.lookup(val)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, fmt.Sprintf("unable to lookup WeaponSet's description (%s)", val))
 		}
 
-		response.description = lang
+		response.Description = lang
 	}
 
 	items, err := crawlToType[map[string]interface{}](data, "items")
 	if err != nil {
-		return nil, errors.New("unable to find items in item_set")
+		return nil, errors.Wrap(err, fmt.Sprintf("unable to find items in item_set %s", response.Id))
 	}
 
 	for item, _ := range items {
@@ -124,7 +71,7 @@ func mapToWeaponSet(id string, data map[string]interface{}, language *language) 
 			continue
 		}
 
-		response.items[paintkitId] = itemId
+		response.Items[paintkitId] = itemId
 	}
 
 	// if set doesn't contain any weapons, return nothing
@@ -135,7 +82,7 @@ func mapToWeaponSet(id string, data map[string]interface{}, language *language) 
 	return response, nil
 }
 
-// splitItemPaintkitString splits a weaponSet item string that represents
+// splitItemPaintkitString splits a WeaponSet item string that represents
 // an item ID - paintkit ID mapping into an item ID and paintkit ID.
 //
 // If the provided string cannot be parsed into the two ids, an error is
@@ -145,22 +92,22 @@ func splitItemPaintkitString(itemPaintkit string) (string, string, error) {
 	match := weaponPaintkitRe.FindStringSubmatch(itemPaintkit)
 	if len(match) != 3 {
 		fmt.Println(itemPaintkit)
-		return "", "", errors.New("unexpected [weapon]paintkit format")
+		return "", "", errors.New("unexpected [Weapon]paintkit format")
 	}
 
 	return match[2], match[1], nil
 }
 
 // getWeaponSets will process all collections included in the provided items data
-// (derived from items_game) and return them as a map[collectionId]*weaponSet.
-func (c *csgoItems) getWeaponSets() (map[string]*weaponSet, error) {
+// (derived from items_game) and return them as a map[collectionId]*WeaponSet.
+func (c *csgoItems) getWeaponSets() (map[string]*WeaponSet, error) {
 
 	collections, err := crawlToType[map[string]interface{}](c.items, "item_sets")
 	if err != nil {
-		return nil, errors.New("item_sets missing from item data") // TODO handle error more nicely
+		return nil, errors.Wrap(err, "item_sets missing from item data")
 	}
 
-	response := make(map[string]*weaponSet)
+	response := make(map[string]*WeaponSet)
 
 	for setId, set := range collections {
 		data, ok := set.(map[string]interface{})
@@ -177,60 +124,52 @@ func (c *csgoItems) getWeaponSets() (map[string]*weaponSet, error) {
 			continue
 		}
 
-		response[setObj.id] = setObj
+		response[setObj.Id] = setObj
 	}
 
 	return response, nil
 }
 
-// characterSet represents a characterSet of items from the items_game file.
-type characterSet struct {
-	id          string
-	name        string
-	description string
-	items       []string
+// CharacterSet represents a CharacterSet of items from the items_game file.
+type CharacterSet struct {
+	Id          string
+	Name        string
+	Description string
+	Items       []string
 }
 
-// mapToCharacterSet converts the provided map into a characterSet providing
+// mapToCharacterSet converts the provided map into a CharacterSet providing
 // all required parameters are present and of the correct type.
 //
 // A response of nil, nil is returned when the provided set doesn't contain
-// any characters, e.g. a weapon set is provided.
-func mapToCharacterSet(id string, data map[string]interface{}, language *language) (*characterSet, error) {
+// any characters, e.g. a Weapon set is provided.
+func mapToCharacterSet(id string, data map[string]interface{}, language *language) (*CharacterSet, error) {
 
-	response := &characterSet{
-		id: id,
+	response := &CharacterSet{
+		Id: id,
 	}
 
 	// get language Name Id
 	if val, err := crawlToType[string](data, "name"); err != nil {
-		return nil, errors.New("language Name Id (name) missing from weaponSet")
+		return nil, errors.Wrap(err, "language Name Id (name) missing from CharacterSet")
 	} else {
 
-		lang, err := language.lookup(val)
-		if err != nil {
-			return nil, err
-		}
-
-		response.name = lang
+		lang, _ := language.lookup(val)
+		response.Name = lang
 	}
 
 	// get language Description Id
 	if val, err := crawlToType[string](data, "set_description"); err != nil {
-		return nil, errors.New("language Description Id (description_string) missing from weaponSet")
+		return nil, errors.Wrap(err, fmt.Sprintf("language Description Id (description_string) missing from CharacterSet (%s)", response.Id))
 	} else {
 
-		lang, err := language.lookup(val)
-		if err != nil {
-			return nil, err
-		}
-
-		response.description = lang
+		lang, _ := language.lookup(val)
+		response.Description = lang
 	}
 
 	items, err := crawlToType[map[string]interface{}](data, "items")
 	if err != nil {
-		return nil, errors.New("unable to find items in item_set")
+		return nil, errors.Wrap(err, fmt.Sprintf("unable to find items in CharacterSet (%s)", response.Id))
 	}
 
 	for item, _ := range items {
@@ -239,7 +178,7 @@ func mapToCharacterSet(id string, data map[string]interface{}, language *languag
 			continue
 		}
 
-		response.items = append(response.items, item)
+		response.Items = append(response.Items, item)
 	}
 
 	// if set doesn't contain any characters, return nothing
@@ -251,20 +190,20 @@ func mapToCharacterSet(id string, data map[string]interface{}, language *languag
 }
 
 // getCharacterSets will process all collections included in the provided items data
-// (derived from items_game) and return them as a map[setId]*characterSet.
-func (c *csgoItems) getCharacterSets() (map[string]*characterSet, error) {
+// (derived from items_game) and return them as a map[setId]*CharacterSet.
+func (c *csgoItems) getCharacterSets() (map[string]*CharacterSet, error) {
 
 	collections, err := crawlToType[map[string]interface{}](c.items, "item_sets")
 	if err != nil {
-		return nil, errors.New("item_sets missing from item data") // TODO handle error more nicely
+		return nil, errors.Wrap(err, "item_sets missing from item data")
 	}
 
-	response := make(map[string]*characterSet)
+	response := make(map[string]*CharacterSet)
 
 	for setId, set := range collections {
 		data, ok := set.(map[string]interface{})
 		if !ok {
-			return nil, errors.New("unexpected format for item_set data")
+			return nil, errors.Wrap(err, "unexpected format for item_set data")
 		}
 
 		setObj, err := mapToCharacterSet(setId, data, c.language)
@@ -276,7 +215,7 @@ func (c *csgoItems) getCharacterSets() (map[string]*characterSet, error) {
 			continue
 		}
 
-		response[setObj.id] = setObj
+		response[setObj.Id] = setObj
 	}
 
 	return response, nil

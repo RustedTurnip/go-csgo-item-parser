@@ -1,7 +1,8 @@
 package csgo
 
 import (
-	"errors"
+	"fmt"
+	"github.com/pkg/errors"
 	"strings"
 )
 
@@ -26,111 +27,103 @@ var (
 	}
 )
 
-// qualityCapability represents a skin type, e.g. StatTrak™ or Souvenir
-type qualityCapability string
-
-// skinnableItem represents any item that can be represented as a skin with a
-// Market Hash Name. Internally, to derive the Market Hash Name, we require a
-// descriptive Name Id for the language file, and whether the item is special.
-type skinnableItem interface {
-	getLanguageNameId() string
-	getSpecial() bool
-}
+// WeaponQuality represents a skin type, e.g. StatTrak™ or Souvenir
+type WeaponQuality string
 
 var (
-	qualityNormal   qualityCapability = "Normal"
-	qualityStatTrak qualityCapability = "StatTrak™"
-	qualitySouvenir qualityCapability = "Souvenir"
+	qualityNormal   WeaponQuality = "Normal"
+	qualityStatTrak WeaponQuality = "StatTrak™"
+	qualitySouvenir WeaponQuality = "Souvenir"
 )
 
 // itemContainer is just a grouping of relevant items_game items that are parsed
 // through getItems.
 type itemContainer struct {
-	weapons         map[string]*weapon
-	knives          map[string]*weapon
-	gloves          map[string]*gloves
-	crates          map[string]*weaponCrate
-	stickerCapsules map[string]*stickerCapsule
+	weapons         map[string]*Weapon
+	knives          map[string]*Weapon
+	gloves          map[string]*Gloves
+	crates          map[string]*WeaponCrate
+	stickerCapsules map[string]*StickerCapsule
 }
 
-// weapon represents a skinnable item that is also a weapon in Csgo.
-type weapon struct {
-	id          string
-	name        string
-	description string
+// Weapon represents a skinnable item that is also a Weapon in Csgo.
+type Weapon struct {
+	Id          string
+	Name        string
+	Description string
 }
 
-// mapToWeapon converts the provided map into a weapon providing
+// mapToWeapon converts the provided map into a Weapon providing
 // all required parameters are present and of the correct type.
-func mapToWeapon(data map[string]interface{}, prefabs map[string]*itemPrefab, language *language) (*weapon, error) {
+func mapToWeapon(data map[string]interface{}, prefabs map[string]*itemPrefab, language *language) (*Weapon, error) {
 
-	response := &weapon{}
+	response := &Weapon{}
 
 	// get Name
 	if val, err := crawlToType[string](data, "name"); err != nil {
-		return nil, errors.New("Id (name) missing from weapon")
+		return nil, errors.New("Id (name) missing from Weapon")
 	} else {
-		response.id = val
+		response.Id = val
 	}
 
 	// get language Name Id
 	if val, err := crawlToType[string](data, "item_name"); err == nil {
 		lang, err := language.lookup(val)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "unable to crawl weapon item to path: item_name")
 		}
 
-		response.name = lang
+		response.Name = lang
 	}
 
 	// get language Description Id
 	if val, err := crawlToType[string](data, "item_description"); err == nil {
 		lang, err := language.lookup(val)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "unable to crawl weapon item to path: item_description")
 		}
 
-		response.description = lang
+		response.Description = lang
 	}
 
 	// get info from prefab where missing
 	if val, ok := data["prefab"].(string); ok {
 
-		if response.name == "" {
-			response.name = prefabs[val].name
+		if response.Name == "" {
+			response.Name = prefabs[val].name
 		}
 
-		if response.description == "" {
-			response.description = prefabs[val].description
+		if response.Description == "" {
+			response.Description = prefabs[val].description
 		}
 	}
 
 	return response, nil
 }
 
-// gloves represents a special skinnable item that isn't a weapon.
-type gloves struct {
+// Gloves represents a special skinnable item that isn't a Weapon.
+type Gloves struct {
 	Id          string
 	Name        string
 	Description string
 }
 
-// mapToGloves converts the provided map into gloves providing
+// mapToGloves converts the provided map into Gloves providing
 // all required parameters are present and of the correct type.
-func mapToGloves(data map[string]interface{}, language *language) (*gloves, error) {
+func mapToGloves(data map[string]interface{}, language *language) (*Gloves, error) {
 
-	response := &gloves{}
+	response := &Gloves{}
 
 	// get Name
 	if val, err := crawlToType[string](data, "name"); err != nil {
-		return nil, errors.New("Id (name) missing from weapon") // TODO improve error
+		return nil, errors.Wrap(err, "unable to crawl gloves item to path: name")
 	} else {
 		response.Id = val
 	}
 
 	// get language Name Id
 	if val, err := crawlToType[string](data, "item_name"); err != nil {
-		return nil, errors.New("language Name Id (item_name) missing from weapon") // TODO improve error
+		return nil, errors.Wrap(err, "unable to crawl gloves item to path: item_name")
 	} else {
 		lang, _ := language.lookup(val)
 		response.Name = lang
@@ -138,7 +131,7 @@ func mapToGloves(data map[string]interface{}, language *language) (*gloves, erro
 
 	// get language Description Id
 	if val, err := crawlToType[string](data, "item_description"); err != nil {
-		return nil, errors.New("language Description Id (item_description) missing from weapon") // TODO improve error
+		return nil, errors.Wrap(err, "unable to crawl gloves item to path: item_description")
 	} else {
 		lang, _ := language.lookup(val)
 		response.Description = lang
@@ -147,138 +140,139 @@ func mapToGloves(data map[string]interface{}, language *language) (*gloves, erro
 	return response, nil
 }
 
-// weaponCrate represents an openable crate that contains items. The crate's items
-// are determined by the linked weaponSet (item_set).
-type weaponCrate struct {
-	id                    string
-	languageNameId        string
-	languageDescriptionId string
+// WeaponCrate represents an openable crate that contains items. The crate's items
+// are determined by the linked WeaponSet (item_set).
+type WeaponCrate struct {
+	Id          string
+	Name        string
+	Description string
 
-	// collectionId is the ID of the weaponSet for the item/paintkit combinations
+	// WeaponSetId is the ID of the WeaponSet for the item/paintkit combinations
 	// available in the crate.
-	collectionId string
+	WeaponSetId string
 
-	// qualityCapability shows whether the crate can produce special skin qualities
+	// QualityCapability shows whether the crate can produce special skin qualities
 	// e.g. Souvenir or StatTrak™
-	qualityCapability qualityCapability
+	QualityCapability WeaponQuality
 }
 
-func (c *weaponCrate) getLanguageNameId() string {
-	return c.languageNameId
-}
-
-// mapToWeaponCrate converts the provided map into a weaponCrate providing
+// mapToWeaponCrate converts the provided map into a WeaponCrate providing
 // all required parameters are present and of the correct type.
-func mapToWeaponCrate(data map[string]interface{}) (*weaponCrate, error) {
+func mapToWeaponCrate(data map[string]interface{}, language *language) (*WeaponCrate, error) {
 
-	response := &weaponCrate{
-		qualityCapability: qualityNormal,
+	response := &WeaponCrate{
+		QualityCapability: qualityNormal,
 	}
 
 	// get Name
 	if val, err := crawlToType[string](data, "name"); err != nil {
-		return nil, errors.New("Id (Name) missing from weaponCrate") // TODO improve error
+		return nil, errors.Wrap(err, "unable to crawl WeaponCrate item to path: name")
 	} else {
-		response.id = val
+		response.Id = val
 	}
 
 	// get language Name Id
 	if val, err := crawlToType[string](data, "item_name"); err != nil {
-		return nil, errors.New("language Name Id (item_name) missing from weaponCrate") // TODO improve error
+		return nil, errors.Wrap(err, "unable to crawl WeaponCrate item to path: item_name")
 	} else {
-		response.languageNameId = val
+		lang, err := language.lookup(val)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("unable to lookup WeaponCrate name (%s) from language", val))
+		}
+
+		response.Name = lang
 	}
 
 	// get language Description Id
 	if val, err := crawlToType[string](data, "item_description"); err == nil {
-		response.languageDescriptionId = val
+		lang, _ := language.lookup(val)
+		response.Description = lang
 	}
 
 	if val, ok := data["prefab"].(string); ok {
 
 		switch val {
 		case "weapon_case":
-			response.qualityCapability = qualityStatTrak
+			response.QualityCapability = qualityStatTrak
 
 		case "weapon_case_souvenirpkg":
-			response.qualityCapability = qualitySouvenir
+			response.QualityCapability = qualitySouvenir
 		}
 	}
 
 	if val, err := crawlToType[string](data, "tags", "ItemSet", "tag_value"); err == nil {
-		response.collectionId = val
+		response.WeaponSetId = val
 	}
 
 	return response, nil
 
 }
 
-// stickerCapsule represents an openable capsule that contains stickers. The capsule's
+// StickerCapsule represents an openable capsule that contains stickers. The capsule's
 // stickers are determined by the linked clientLootListId (client_loot_list).
-type stickerCapsule struct {
-	id                    string
-	languageNameId        string
-	languageDescriptionId string
+type StickerCapsule struct {
+	Id          string
+	Name        string
+	Description string
 
 	// clientLootListIndex is the index number of the client_loot_list that links the capsule's
 	// stickers to the capsule.
-	clientLootListIndex string
+	ClientLootListIndex string
 }
 
-func (c *stickerCapsule) getLanguageNameId() string {
-	return c.languageNameId
-}
-
-// mapToStickerCapsule converts the provided map into a stickerCapsule providing
+// mapToStickerCapsule converts the provided map into a StickerCapsule providing
 // all required parameters are present and of the correct type.
-func mapToStickerCapsule(data map[string]interface{}) (*stickerCapsule, error) {
+func mapToStickerCapsule(data map[string]interface{}, language *language) (*StickerCapsule, error) {
 
-	response := &stickerCapsule{}
+	response := &StickerCapsule{}
 
 	// get Name
 	if val, err := crawlToType[string](data, "name"); err != nil {
-		return nil, errors.New("Id (name) missing from stickerCapsule") // TODO improve error
+		return nil, errors.Wrap(err, "unable to crawl StickerCapsule item to path: name")
 	} else {
-		response.id = val
+		response.Id = val
 	}
 
 	// get language Name Id
 	if val, err := crawlToType[string](data, "item_name"); err == nil {
-		response.languageNameId = val
+		lang, _ := language.lookup(val)
+		response.Name = lang
 	}
 
 	if val, err := crawlToType[string](data, "tags", "StickerCapsule", "tag_text"); err == nil {
-		response.languageNameId = val
+		lang, _ := language.lookup(val)
+		response.Name = lang
 	}
 
-	if response.languageNameId == "" {
+	if response.Name == "" {
 		return nil, errors.New("unable to locate StickerKit's language Name Id")
 	}
 
 	// get language Description Id
 	if val, err := crawlToType[string](data, "item_description"); err == nil {
-		response.languageDescriptionId = val
+		lang, _ := language.lookup(val)
+		response.Description = lang
 	}
 
 	if val, err := crawlToType[string](data, "attributes", "set supply crate series", "value"); err == nil {
-		response.clientLootListIndex = val
+		response.ClientLootListIndex = val
 	}
 
 	return response, nil
 }
 
 // getItems processes the provided items data and, based on the item's prefab,
-// produces the relevant item (e.g. gloves, weapon, or crate).
+// produces the relevant item (e.g. Gloves, Weapon, or crate).
 //
 // All items are returned within the itemContainer part of the response.
 func (c *csgoItems) getItems(prefabs map[string]*itemPrefab) (*itemContainer, error) {
 
 	response := &itemContainer{
-		weapons:         make(map[string]*weapon),
-		knives:          make(map[string]*weapon),
-		gloves:          make(map[string]*gloves),
-		crates:          make(map[string]*weaponCrate),
-		stickerCapsules: map[string]*stickerCapsule{},
+		weapons:         make(map[string]*Weapon),
+		knives:          make(map[string]*Weapon),
+		gloves:          make(map[string]*Gloves),
+		crates:          make(map[string]*WeaponCrate),
+		stickerCapsules: map[string]*StickerCapsule{},
 	}
 
 	items, err := crawlToType[map[string]interface{}](c.items, "items")
@@ -301,7 +295,7 @@ func (c *csgoItems) getItems(prefabs map[string]*itemPrefab) (*itemContainer, er
 				return nil, err
 			}
 
-			response.weapons[w.id] = w
+			response.weapons[w.Id] = w
 
 		case itemTypeWeaponKnife:
 			w, err := mapToWeapon(itemMap, prefabs, c.language)
@@ -309,7 +303,7 @@ func (c *csgoItems) getItems(prefabs map[string]*itemPrefab) (*itemContainer, er
 				return nil, err
 			}
 
-			response.knives[w.id] = w
+			response.knives[w.Id] = w
 
 		case itemTypeGloves:
 			g, err := mapToGloves(itemMap, c.language)
@@ -320,27 +314,28 @@ func (c *csgoItems) getItems(prefabs map[string]*itemPrefab) (*itemContainer, er
 			response.gloves[g.Id] = g
 
 		case itemTypeCrate:
-			c, err := mapToWeaponCrate(itemMap)
+			c, err := mapToWeaponCrate(itemMap, c.language)
 			if err != nil {
 				return nil, err
 			}
 
-			response.crates[c.id] = c
+			response.crates[c.Id] = c
 
 		case itemTypeStickerCapsule:
-			c, err := mapToStickerCapsule(itemMap)
+			c, err := mapToStickerCapsule(itemMap, c.language)
 			if err != nil {
 				return nil, err
 			}
 
-			response.stickerCapsules[c.id] = c
+			response.stickerCapsules[c.Id] = c
 		}
 	}
 
 	return response, nil
 }
 
-// TODO comment
+// getItemType attempts to identify an items_game.txt item by assessing its prefab
+// (where applicable) or otherwise assessing the contained fields.
 func getItemType(data map[string]interface{}, prefabs map[string]*itemPrefab) itemType {
 
 	// attempt to identify from prefab

@@ -3,9 +3,30 @@ package csgo
 import (
 	"fmt"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
-// getIconSet TODO comment
+// getKnifeSet is used in the same way as getIconSet, but it supplements the set
+// with additional vanilla items of the provided knifeIds.
+func (c *csgoItems) getKnifeSet(knifeIds map[string]interface{}) (map[string][]string, error) {
+
+	set, err := c.getIconSet(knifeIds)
+	if err != nil {
+		return nil, err
+	}
+
+	// add vanilla knives
+	for knifeId := range knifeIds {
+		set["vanilla"] = append(set["vanilla"], knifeId)
+	}
+
+	return set, nil
+}
+
+// getIconSet is used to extract the Weapon id-paintkit id combinations from the
+// alternate_icons2 list from items_game.txt. This can be used to extract items
+// that do not appear in any sets defined elsewhere within the file.
 func (c *csgoItems) getIconSet(itemIds map[string]interface{}) (map[string][]string, error) {
 
 	response := make(map[string][]string)
@@ -24,10 +45,10 @@ func (c *csgoItems) getIconSet(itemIds map[string]interface{}) (map[string][]str
 
 		iconPath, err := crawlToType[string](iconMap, "icon_path")
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "couldn't crawl to path: icon_path")
 		}
 
-		// each weapon skin appears in icons 3 times, by including only the "..._light"
+		// each Weapon skin appears in icons 3 times, by including only the "..._light"
 		// ones we are eliminating duplicates.
 		if !strings.HasSuffix(iconPath, "_light") {
 			continue
@@ -75,7 +96,7 @@ func findLongestIdMatch[T any](ids map[string]T, path string) string {
 
 // getItemPaintkitFromIconPath will extract from the provided path, the
 // paintkit ID. itemID is required to distinguish the paintkit from the
-// weapon.
+// Weapon.
 func getItemPaintkitFromIconPath(itemId string, path string) (string, string, error) {
 
 	pathTail := strings.TrimPrefix(path, "econ/default_generated/")
@@ -93,5 +114,5 @@ func getItemPaintkitFromIconPath(itemId string, path string) (string, string, er
 		return iId, pkId, nil
 	}
 
-	return "", "", fmt.Errorf("unable to derive weapon and paintkit from icon path: %s", path)
+	return "", "", fmt.Errorf("unable to derive Weapon and paintkit from icon path: %s", path)
 }

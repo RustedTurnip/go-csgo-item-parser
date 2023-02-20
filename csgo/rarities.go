@@ -1,50 +1,44 @@
 package csgo
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/pkg/errors"
+)
 
-// rarity represents a Csgo item rarity.
-type rarity struct {
-	id                  string
-	generalRarityName   string
-	weaponRarityName    string
-	characterRarityName string
+// Rarity represents a Csgo item Rarity.
+type Rarity struct {
+	Id                  string
+	GeneralRarityName   string
+	WeaponRarityName    string
+	CharacterRarityName string
 }
 
-// mapToRarity converts the provided data map into a rarity object.
-func mapToRarity(id string, data map[string]interface{}, language *language) (*rarity, error) {
+// mapToRarity converts the provided data map into a Rarity object.
+func mapToRarity(id string, data map[string]interface{}, language *language) (*Rarity, error) {
 
-	response := &rarity{
-		id: id,
+	response := &Rarity{
+		Id: id,
 	}
 
 	if key, err := crawlToType[string](data, "loc_key"); err == nil {
-		name, err := language.lookup(key)
-		if err == nil {
-			response.generalRarityName = name
-		}
-
+		lang, _ := language.lookup(key)
+		response.GeneralRarityName = lang
 	} else {
-		return nil, fmt.Errorf("unable to locate language Name Id (loc_key) from Rarity %s: %s", response.id, err.Error())
+		return nil, errors.Wrap(err, fmt.Sprintf("unable to locate language Name Id (loc_key) from Rarity %s", response.Id))
 	}
 
 	if key, err := crawlToType[string](data, "loc_key_weapon"); err == nil {
-		name, err := language.lookup(key)
-		if err == nil {
-			response.weaponRarityName = name
-		}
-
+		lang, _ := language.lookup(key)
+		response.WeaponRarityName = lang
 	} else {
-		return nil, fmt.Errorf("unable to locate language Name weapon Id (loc_key_weapon) from Rarity %s: %s", response.id, err.Error())
+		return nil, errors.Wrap(err, fmt.Sprintf("unable to locate language Name Weapon Id (loc_key_weapon) from Rarity %s", response.Id))
 	}
 
 	if key, err := crawlToType[string](data, "loc_key_character"); err == nil {
-		name, err := language.lookup(key)
-		if err == nil {
-			response.weaponRarityName = name
-		}
-
+		lang, _ := language.lookup(key)
+		response.WeaponRarityName = lang
 	} else {
-		return nil, fmt.Errorf("unable to locate language Name character Id (loc_key_character) from Rarity %s: %s", response.id, err.Error())
+		return nil, errors.Wrap(err, fmt.Sprintf("unable to locate language Name character Id (loc_key_character) from Rarity %s", response.Id))
 	}
 
 	return response, nil
@@ -52,13 +46,13 @@ func mapToRarity(id string, data map[string]interface{}, language *language) (*r
 
 // getRarities retrieves all Rarities from the provided items data and returns them
 // in the format map[rarityId]Rarity.
-func (c *csgoItems) getRarities() (map[string]*rarity, error) {
+func (c *csgoItems) getRarities() (map[string]*Rarity, error) {
 
-	response := make(map[string]*rarity)
+	response := make(map[string]*Rarity)
 
 	rarities, err := crawlToType[map[string]interface{}](c.items, "rarities")
 	if err != nil {
-		return nil, fmt.Errorf("unable to locate Rarities amongst items: %s", err.Error())
+		return nil, errors.Wrap(err, "unable to locate rarities amongst items")
 	}
 
 	for id, rarity := range rarities {
