@@ -31,12 +31,16 @@ func main() {
 		panic(err)
 	}
 
-	allItems, err := csgo.GetAllItems(result, resultTwo)
+	allItems, err := csgo.New(result, resultTwo)
 	if err != nil {
 		panic(err)
 	}
 
-	for _, skin := range allItems.Skins {
-		fmt.Println(skin.MarketHashName)
+	// TODO testing
+
+	for _, paintkit := range allItems.Paintkits {
+		fmt.Println(paintkit.Name)
 	}
+
+	// TODO !testing
 }

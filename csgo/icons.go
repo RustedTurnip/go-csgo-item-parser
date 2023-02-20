@@ -5,17 +5,12 @@ import (
 	"strings"
 )
 
-// getIconSet will process all icons included within the items data and
-// attempt to extract the item and paintkit IDs for the target item IDs
-// included in itemIds.
-//
-// e.g. look for all paintkits that are available for the item
-// weapon_knife_css.
-func getIconSet[T any](items map[string]interface{}, itemIds map[string]T) (*itemPaintkitSet, error) {
+// getIconSet TODO comment
+func (c *csgoItems) getIconSet(itemIds map[string]interface{}) (map[string][]string, error) {
 
-	response := &itemPaintkitSet{}
+	response := make(map[string][]string)
 
-	icons, err := crawlToType[map[string]interface{}](items, "alternate_icons2", "weapon_icons")
+	icons, err := crawlToType[map[string]interface{}](c.items, "alternate_icons2", "weapon_icons")
 	if err != nil {
 		return nil, fmt.Errorf("unable to locate weapon_icons: %s", err.Error())
 	}
@@ -48,15 +43,14 @@ func getIconSet[T any](items map[string]interface{}, itemIds map[string]T) (*ite
 			return nil, err
 		}
 
-		// if entry doesn't already exist, create map to prevent nil dereference
-		response.add(itemId, paintkitId)
+		response[paintkitId] = append(response[paintkitId], itemId)
 	}
 
 	return response, nil
 }
 
 // findLongestIdMatch will take a provided icon path and locate the
-// longest matching id from ids within the path.
+// longest matching Id from ids within the path.
 //
 // e.g. with the ids: { test_weapon_knife, test_weapon_knife_karambit }
 // and the path "icon/path/test_weapon_knife_karambit",

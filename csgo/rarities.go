@@ -2,68 +2,73 @@ package csgo
 
 import "fmt"
 
-// rarity represents a csgo item rarity.
+// rarity represents a Csgo item rarity.
 type rarity struct {
-	id                      string
-	languageNameId          string
-	languageNameWeaponId    string
-	languageNameCharacterId string
-	colourId                string
+	id                  string
+	generalRarityName   string
+	weaponRarityName    string
+	characterRarityName string
 }
 
 // mapToRarity converts the provided data map into a rarity object.
-func mapToRarity(id string, data map[string]interface{}) (*rarity, error) {
+func mapToRarity(id string, data map[string]interface{}, language *language) (*rarity, error) {
 
 	response := &rarity{
 		id: id,
 	}
 
 	if key, err := crawlToType[string](data, "loc_key"); err == nil {
-		response.languageNameId = key
+		name, err := language.lookup(key)
+		if err == nil {
+			response.generalRarityName = name
+		}
+
 	} else {
-		return nil, fmt.Errorf("unable to locate language name id (loc_key) from rarity %s: %s", response.id, err.Error())
+		return nil, fmt.Errorf("unable to locate language Name Id (loc_key) from Rarity %s: %s", response.id, err.Error())
 	}
 
 	if key, err := crawlToType[string](data, "loc_key_weapon"); err == nil {
-		response.languageNameWeaponId = key
+		name, err := language.lookup(key)
+		if err == nil {
+			response.weaponRarityName = name
+		}
+
 	} else {
-		return nil, fmt.Errorf("unable to locate language name weapon id (loc_key_weapon) from rarity %s: %s", response.id, err.Error())
+		return nil, fmt.Errorf("unable to locate language Name weapon Id (loc_key_weapon) from Rarity %s: %s", response.id, err.Error())
 	}
 
 	if key, err := crawlToType[string](data, "loc_key_character"); err == nil {
-		response.languageNameWeaponId = key
-	} else {
-		return nil, fmt.Errorf("unable to locate language name character id (loc_key_character) from rarity %s: %s", response.id, err.Error())
-	}
+		name, err := language.lookup(key)
+		if err == nil {
+			response.weaponRarityName = name
+		}
 
-	if key, err := crawlToType[string](data, "color"); err == nil {
-		response.colourId = key
 	} else {
-		return nil, fmt.Errorf("unable to locate colour id (color) from rarity %s: %s", response.id, err.Error())
+		return nil, fmt.Errorf("unable to locate language Name character Id (loc_key_character) from Rarity %s: %s", response.id, err.Error())
 	}
 
 	return response, nil
 }
 
-// getRarities retrieves all rarities from the provided items data and returns them
-// in the format map[rarityId]rarity.
-func getRarities(items map[string]interface{}) (map[string]*rarity, error) {
+// getRarities retrieves all Rarities from the provided items data and returns them
+// in the format map[rarityId]Rarity.
+func (c *csgoItems) getRarities() (map[string]*rarity, error) {
 
 	response := make(map[string]*rarity)
 
-	rarities, err := crawlToType[map[string]interface{}](items, "rarities")
+	rarities, err := crawlToType[map[string]interface{}](c.items, "rarities")
 	if err != nil {
-		return nil, fmt.Errorf("unable to locate rarities amongst items: %s", err.Error())
+		return nil, fmt.Errorf("unable to locate Rarities amongst items: %s", err.Error())
 	}
 
 	for id, rarity := range rarities {
 
 		rarityData, ok := rarity.(map[string]interface{})
 		if !ok {
-			return nil, fmt.Errorf("rarity data for %s is of unexpected type", id)
+			return nil, fmt.Errorf("Rarity data for %s is of unexpected type", id)
 		}
 
-		rarityMap, err := mapToRarity(id, rarityData)
+		rarityMap, err := mapToRarity(id, rarityData, c.language)
 		if err != nil {
 			return nil, err
 		}

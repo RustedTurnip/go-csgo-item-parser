@@ -14,44 +14,54 @@ const (
 // paintkit represents the image details of a skin, i.e. the available float
 // range the skin can be in. Every entities.Skin has an associated paintkit.
 type paintkit struct {
-	id                    string
-	languageNameId        string
-	languageDescriptionId string
-	rarityId              string
-	minFloat              float64
-	maxFloat              float64
+	Id          string
+	Name        string
+	Description string
+	Rarity      string
+	MinFloat    float64
+	MaxFloat    float64
 }
 
 // mapToPaintkit converts the provided map into a paintkit providing
 // all required parameters are present and of the correct type.
-func mapToPaintkit(data map[string]interface{}) (*paintkit, error) {
+func mapToPaintkit(data map[string]interface{}, language *language) (*paintkit, error) {
 
 	response := &paintkit{
-		minFloat: defaultMinFloat,
-		maxFloat: defaultMaxFloat,
+		MinFloat: defaultMinFloat,
+		MaxFloat: defaultMaxFloat,
 	}
 
-	// get name
+	// get Name
 	if val, err := crawlToType[string](data, "name"); err != nil {
-		return nil, errors.New("id (name) missing from paintkit")
+		return nil, errors.New("Id (name) missing from paintkit")
 	} else {
-		response.id = val
+		response.Id = val
 	}
 
-	// get language name id
+	// get language Name Id
 	if val, ok := data["description_tag"].(string); ok {
-		response.languageNameId = val
+		name, err := language.lookup(val)
+		if err != nil {
+			return nil, err
+		}
+
+		response.Name = name
 	}
 
-	// get language description id
+	// get language Description Id
 	if val, ok := data["description_string"].(string); ok {
-		response.languageDescriptionId = val
+		description, err := language.lookup(val)
+		if err != nil {
+			return nil, err
+		}
+
+		response.Description = description
 	}
 
 	// get min float
 	if val, ok := data["wear_remap_min"].(string); ok {
 		if valFloat, err := strconv.ParseFloat(val, 64); err == nil {
-			response.minFloat = valFloat
+			response.MinFloat = valFloat
 		} else {
 			return nil, errors.New("paintkit has non-float min float value (wear_remap_min)")
 		}
@@ -60,7 +70,7 @@ func mapToPaintkit(data map[string]interface{}) (*paintkit, error) {
 	// get max float
 	if val, ok := data["wear_remap_max"].(string); ok {
 		if valFloat, err := strconv.ParseFloat(val, 64); err == nil {
-			response.minFloat = valFloat
+			response.MaxFloat = valFloat
 		} else {
 			return nil, errors.New("paintkit has non-float max float value (wear_remap_max)")
 		}
@@ -69,18 +79,18 @@ func mapToPaintkit(data map[string]interface{}) (*paintkit, error) {
 	return response, nil
 }
 
-// getPaintkits gathers all paintkits in the provided items data and returns them
+// getPaintkits gathers all Paintkits in the provided items data and returns them
 // as map[paintkitId]paintkit.
-func getPaintkits(items map[string]interface{}) (map[string]*paintkit, error) {
+func (c *csgoItems) getPaintkits() (map[string]*paintkit, error) {
 
 	response := make(map[string]*paintkit)
 
-	rarities, err := crawlToType[map[string]interface{}](items, "paint_kits_rarity")
+	rarities, err := crawlToType[map[string]interface{}](c.items, "paint_kits_rarity")
 	if err != nil {
 		return nil, fmt.Errorf("unable to extract paint_kits_rarity: %s", err.Error())
 	}
 
-	kits, err := crawlToType[map[string]interface{}](items, "paint_kits")
+	kits, err := crawlToType[map[string]interface{}](c.items, "paint_kits")
 	if err != nil {
 		return nil, errors.New("unable to locate paint_kits in provided items") // TODO improve error
 	}
@@ -91,16 +101,16 @@ func getPaintkits(items map[string]interface{}) (map[string]*paintkit, error) {
 			return nil, errors.New("unexpected paintkit layout in paint_kits")
 		}
 
-		converted, err := mapToPaintkit(mKit)
+		converted, err := mapToPaintkit(mKit, c.language)
 		if err != nil {
 			return nil, err
 		}
 
-		if rarity, ok := rarities[converted.id].(string); ok {
-			converted.rarityId = rarity
+		if rarity, ok := rarities[converted.Id].(string); ok {
+			converted.Rarity = rarity
 		}
 
-		response[converted.id] = converted
+		response[converted.Id] = converted
 	}
 
 	return response, nil

@@ -6,53 +6,60 @@ import (
 
 // stickerkit represents a stickerkit object from the items_game file.
 type stickerkit struct {
-	id                    string
-	languageNameId        string
-	languageDescriptionId string
-	rarity                string
+	Id          string
+	Name        string
+	Description string
+	RarityId    string
 }
 
 // mapToStickerkit converts the provided data map into a stickerkit object.
-func mapToStickerkit(data map[string]interface{}) (*stickerkit, error) {
+func mapToStickerkit(data map[string]interface{}, language *language) (*stickerkit, error) {
 
 	response := &stickerkit{}
 
-	// get name
+	// get Name
 	if val, err := crawlToType[string](data, "name"); err != nil {
-		return nil, errors.New("id (name) missing from stickerkit") // TODO improve error
+		return nil, errors.New("Id (name) missing from stickerkit") // TODO improve error
 	} else {
-		response.id = val
+		response.Id = val
 	}
 
-	// get language name id
+	// get language Name Id
 	if val, err := crawlToType[string](data, "item_name"); err != nil {
-		return nil, errors.New("language name id (item_name) missing from stickerkit") // TODO improve error
+		return nil, errors.New("language Name Id (item_name) missing from stickerkit") // TODO improve error
 	} else {
-		response.languageNameId = val
+
+		lang, _ := language.lookup(val)
+		if err != nil {
+			return nil, err // TODO improve error
+		}
+
+		response.Name = lang
 	}
 
-	// get language description id
+	// get language Description Id
 	if val, err := crawlToType[string](data, "description_string"); err != nil {
-		return nil, errors.New("language description id (description_string) missing from stickerkit") // TODO improve error
+		return nil, errors.New("language Description Id (description_string) missing from stickerkit") // TODO improve error
 	} else {
-		response.languageDescriptionId = val
+		lang, _ := language.lookup(val)
+		response.Description = lang
 	}
 
-	// get rarity
+	// get Rarity
 	if val, err := crawlToType[string](data, "item_rarity"); err == nil {
-		response.rarity = val
+		response.RarityId = val
 	}
 
 	return response, nil
 }
 
-// getStickerkits retrieves all the stickerkits available in the provided items map
+// getStickerkits retrieves all the Stickerkits available in the provided items map
 // and returns them in the format map[stickerkitId]stickerkit.
-func getStickerkits(items map[string]interface{}) (map[string]*stickerkit, error) {
+func (c *csgoItems) getStickerkits() (map[string]*stickerkit, error) {
 
 	response := make(map[string]*stickerkit)
 
-	kits, err := crawlToType[map[string]interface{}](items, "sticker_kits")
+	kits, err := crawlToType[map[string]interface{}](c.items, "sticker_kits")
 	if err != nil {
 		return nil, errors.New("unable to locate paint_kits in provided items") // TODO improve error
 	}
@@ -64,12 +71,12 @@ func getStickerkits(items map[string]interface{}) (map[string]*stickerkit, error
 			return nil, errors.New("unexpected stickerkit layout in sticker_kits")
 		}
 
-		converted, err := mapToStickerkit(mKit)
+		converted, err := mapToStickerkit(mKit, c.language)
 		if err != nil {
 			return nil, err
 		}
 
-		response[converted.id] = converted
+		response[converted.Id] = converted
 	}
 
 	return response, nil
