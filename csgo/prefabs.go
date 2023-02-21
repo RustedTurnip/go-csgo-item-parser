@@ -2,31 +2,6 @@ package csgo
 
 import (
 	"github.com/pkg/errors"
-	"strings"
-)
-
-var (
-	// itemPrefabPrefabs is a map of all prefabs that exist against item prefabs
-	// that we need to track.
-	itemPrefabPrefabs = map[string]itemType{
-
-		"": itemTypeUnknown,
-
-		// Guns
-		"primary":       itemTypeWeaponGun,   // covers ay Weapon that can be primary (e.g. smg)
-		"secondary":     itemTypeWeaponGun,   // covers any Weapon that can be secondary (e.g. pistol)
-		"melee_unusual": itemTypeWeaponKnife, // covers all tradable Knives
-
-		// Gloves
-		"hands": itemTypeGloves, // covers Gloves
-
-		// crates
-		"weapon_case":             itemTypeCrate,
-		"weapon_case_souvenirpkg": itemTypeCrate,
-
-		// stickers
-		"sticker_capsule": itemTypeStickerCapsule,
-	}
 )
 
 // itemPrefab represents a Csgo prefab which is used to categorise item
@@ -94,34 +69,6 @@ func (c *csgoItems) getItemPrefabs() (map[string]*itemPrefab, error) {
 	}
 
 	return response, nil
-}
-
-// getTypeFromPrefab will traverse the prefab inheritence tree until a
-// recognisable prefab is found (or the end is reached) and it will
-// return the associated item type for the matched prefab.
-func getTypeFromPrefab(prefabId string, prefabs map[string]*itemPrefab) itemType {
-
-	prefabId = strings.Split(prefabId, " ")[0]
-
-	prefab, ok := prefabs[prefabId]
-
-	// if prefab isn't recognised
-	if !ok {
-		return itemTypeUnknown
-	}
-
-	// if prefab item type is known, return item type
-	if prefab.itemType != itemTypeUnknown {
-		return prefab.itemType
-	}
-
-	// if at root of prefab tree, return unknown
-	if prefab.parentPrefab == "" {
-		return itemTypeUnknown
-	}
-
-	// if prefab item type is unknown, but prefab has parent, crawl further
-	return getTypeFromPrefab(prefab.parentPrefab, prefabs)
 }
 
 // getPrefabItemType can be used to identify some prefabs for the itemType they

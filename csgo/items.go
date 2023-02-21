@@ -3,7 +3,6 @@ package csgo
 import (
 	"fmt"
 	"github.com/pkg/errors"
-	"strings"
 )
 
 // itemType is used to categorise what type of item is being dealt with.
@@ -24,6 +23,96 @@ var (
 	itemIdTypePrefixes = map[string]itemType{
 		"crate_sticker_pack_":   itemTypeStickerCapsule,
 		"crate_signature_pack_": itemTypeStickerCapsule,
+	}
+)
+
+type prefabItemConverter func(*csgoItems, map[string]interface{}) (interface{}, error)
+
+var (
+	// itemPrefabPrefabs is a map of all prefabs that exist against item prefabs
+	// that we need to track.
+	itemPrefabPrefabs = map[string]itemType{
+
+		"": itemTypeUnknown,
+
+		// Guns
+		"primary":       itemTypeWeaponGun,   // covers ay Weapon that can be primary (e.g. smg)
+		"secondary":     itemTypeWeaponGun,   // covers any Weapon that can be secondary (e.g. pistol)
+		"melee_unusual": itemTypeWeaponKnife, // covers all tradable Knives
+
+		// Gloves
+		"hands": itemTypeGloves, // covers Gloves
+
+		// crates
+		"weapon_case":             itemTypeCrate,
+		"weapon_case_souvenirpkg": itemTypeCrate,
+
+		// stickers
+		"sticker_capsule": itemTypeStickerCapsule,
+	}
+
+	itemPrefabPrefabs2 = map[string]prefabItemConverter{
+
+		"primary": func(items *csgoItems, data map[string]interface{}) (interface{}, error) {
+			return mapToWeapon(data, items.prefabs, items.language)
+		},
+
+		"secondary": func(items *csgoItems, data map[string]interface{}) (interface{}, error) {
+			return mapToWeapon(data, items.prefabs, items.language)
+		},
+
+		"melee_unusual": func(items *csgoItems, data map[string]interface{}) (interface{}, error) {
+			return mapToWeapon(data, items.prefabs, items.language)
+		},
+
+		"hands": func(items *csgoItems, data map[string]interface{}) (interface{}, error) {
+			return mapToGloves(data, items.language)
+		},
+
+		"weapon_case": func(items *csgoItems, data map[string]interface{}) (interface{}, error) {
+			return mapToWeaponCrate(data, items.language)
+		},
+
+		"weapon_case_souvenirpkg": func(items *csgoItems, data map[string]interface{}) (interface{}, error) {
+			return mapToWeaponCrate(data, items.language)
+		},
+
+		"weapon_case_base": func(items *csgoItems, data map[string]interface{}) (interface{}, error) {
+
+			// weapon crate cast
+			if _, err := crawlToType[string](data, "tags", "ItemSet", "tag_value"); err == nil {
+				return mapToWeaponCrate(data, items.language)
+			}
+
+			// if it is a set (identified through revolving_loot_lists)
+			if val, err := crawlToType[string](data, "attributes", "set supply crate series", "value"); err == nil {
+				if clientLootListId, ok := items.revolvingLootLists[val]; ok {
+					itemType, listItems := crawlClientLootLists(clientLootListId, items.clientLootLists)
+
+					switch itemType {
+					case clientLootListItemTypeSticker:
+						return mapToStickerCapsule(data, listItems, items.language)
+					}
+				}
+			}
+
+			// if it is a set (identified through client_loot_lists)
+			if val, err := crawlToType[string](data, "loot_list_name"); err == nil {
+				itemType, listItems := crawlClientLootLists(val, items.clientLootLists)
+
+				switch itemType {
+				case clientLootListItemTypeSticker:
+					return mapToStickerCapsule(data, listItems, items.language)
+				}
+			}
+
+			// Can be split into:
+			// - Sticker Pack (Capsule) - (Deduce from revolving_loot_lists)
+			// - Operator Dossier - (Deduce from revolving_loot_lists) (TODO add when we support characters)
+			// - Music Kit capsule (TODO add when we support music kits)
+
+			return nil, nil // TODO
+		},
 	}
 )
 
@@ -214,17 +303,16 @@ type StickerCapsule struct {
 	Id          string
 	Name        string
 	Description string
-
-	// clientLootListIndex is the index number of the client_loot_list that links the capsule's
-	// stickers to the capsule.
-	ClientLootListIndex string
+	StickerKits []string
 }
 
 // mapToStickerCapsule converts the provided map into a StickerCapsule providing
 // all required parameters are present and of the correct type.
-func mapToStickerCapsule(data map[string]interface{}, language *language) (*StickerCapsule, error) {
+func mapToStickerCapsule(data map[string]interface{}, stickers []string, language *language) (*StickerCapsule, error) {
 
-	response := &StickerCapsule{}
+	response := &StickerCapsule{
+		StickerKits: stickers,
+	}
 
 	// get Name
 	if val, err := crawlToType[string](data, "name"); err != nil {
@@ -254,10 +342,6 @@ func mapToStickerCapsule(data map[string]interface{}, language *language) (*Stic
 		response.Description = lang
 	}
 
-	if val, err := crawlToType[string](data, "attributes", "set supply crate series", "value"); err == nil {
-		response.ClientLootListIndex = val
-	}
-
 	return response, nil
 }
 
@@ -265,14 +349,14 @@ func mapToStickerCapsule(data map[string]interface{}, language *language) (*Stic
 // produces the relevant item (e.g. Gloves, Weapon, or crate).
 //
 // All items are returned within the itemContainer part of the response.
-func (c *csgoItems) getItems(prefabs map[string]*itemPrefab) (*itemContainer, error) {
+func (c *csgoItems) getItems() (*itemContainer, error) {
 
 	response := &itemContainer{
 		weapons:         make(map[string]*Weapon),
 		knives:          make(map[string]*Weapon),
 		gloves:          make(map[string]*Gloves),
 		crates:          make(map[string]*WeaponCrate),
-		stickerCapsules: map[string]*StickerCapsule{},
+		stickerCapsules: make(map[string]*StickerCapsule),
 	}
 
 	items, err := crawlToType[map[string]interface{}](c.items, "items")
@@ -287,47 +371,30 @@ func (c *csgoItems) getItems(prefabs map[string]*itemPrefab) (*itemContainer, er
 			return nil, errors.New("unexpected item format found when fetching items")
 		}
 
-		switch getItemType(itemMap, prefabs) {
+		converted, err := convertItem(c, itemMap)
+		if err != nil {
+			return nil, err
+		}
 
-		case itemTypeWeaponGun:
-			w, err := mapToWeapon(itemMap, prefabs, c.language)
-			if err != nil {
-				return nil, err
+		switch converted.(type) {
+
+		case *Weapon:
+			if itemMap["prefab"].(string) == "melee_unusual" {
+				response.knives[converted.(*Weapon).Id] = converted.(*Weapon)
+				continue
 			}
 
-			response.weapons[w.Id] = w
+			response.weapons[converted.(*Weapon).Id] = converted.(*Weapon)
 
-		case itemTypeWeaponKnife:
-			w, err := mapToWeapon(itemMap, prefabs, c.language)
-			if err != nil {
-				return nil, err
-			}
+		case *Gloves:
+			response.gloves[converted.(*Gloves).Id] = converted.(*Gloves)
 
-			response.knives[w.Id] = w
+		case *WeaponCrate:
+			response.crates[converted.(*WeaponCrate).Id] = converted.(*WeaponCrate)
 
-		case itemTypeGloves:
-			g, err := mapToGloves(itemMap, c.language)
-			if err != nil {
-				return nil, err
-			}
+		case *StickerCapsule:
+			response.stickerCapsules[converted.(*StickerCapsule).Id] = converted.(*StickerCapsule)
 
-			response.gloves[g.Id] = g
-
-		case itemTypeCrate:
-			c, err := mapToWeaponCrate(itemMap, c.language)
-			if err != nil {
-				return nil, err
-			}
-
-			response.crates[c.Id] = c
-
-		case itemTypeStickerCapsule:
-			c, err := mapToStickerCapsule(itemMap, c.language)
-			if err != nil {
-				return nil, err
-			}
-
-			response.stickerCapsules[c.Id] = c
 		}
 	}
 
@@ -336,30 +403,40 @@ func (c *csgoItems) getItems(prefabs map[string]*itemPrefab) (*itemContainer, er
 
 // getItemType attempts to identify an items_game.txt item by assessing its prefab
 // (where applicable) or otherwise assessing the contained fields.
-func getItemType(data map[string]interface{}, prefabs map[string]*itemPrefab) itemType {
+func convertItem(items *csgoItems, data map[string]interface{}) (interface{}, error) {
 
-	// attempt to identify from prefab
 	prefab, ok := data["prefab"].(string)
-	if ok {
-		it := getTypeFromPrefab(prefab, prefabs)
-		if it != itemTypeUnknown {
-			return it
-		}
+	if !ok {
+		return nil, nil
 	}
 
-	// attempt to identify from tags
-	if val, err := crawlToType[string](data, "tags", "StickerCapsule", "tag_group"); err == nil {
-		if val == "StickerCapsule" {
-			return itemTypeStickerCapsule
-		}
+	converter := getPrefabConversionFunc(prefab, items.prefabs)
+	if converter == nil {
+		return nil, nil
 	}
 
-	// attempt to identify from Id prefix
-	for prefix, it := range itemIdTypePrefixes {
-		if strings.HasPrefix(data["name"].(string), prefix) {
-			return it
-		}
+	return converter(items, data)
+}
+
+// TODO comment
+func getPrefabConversionFunc(prefabId string, prefabs map[string]*itemPrefab) prefabItemConverter {
+
+	if converter, ok := itemPrefabPrefabs2[prefabId]; ok {
+		return converter
 	}
 
-	return itemTypeUnknown
+	prefab, ok := prefabs[prefabId]
+
+	// if prefab isn't recognised
+	if !ok {
+		return nil
+	}
+
+	// if at root of prefab tree, return unknown
+	if prefab.parentPrefab == "" {
+		return nil
+	}
+
+	// if prefab item type is unknown, but prefab has parent, crawl further
+	return getPrefabConversionFunc(prefab.parentPrefab, prefabs)
 }

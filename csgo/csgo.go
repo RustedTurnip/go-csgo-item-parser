@@ -21,12 +21,70 @@ func New(languageData, itemData map[string]interface{}) (*Csgo, error) {
 		return nil, errors.New("unable to locate \"items_game\" in provided itemData") // TODO format error better than this
 	}
 
-	items := &csgoItems{
-		language: language,
-		items:    fileItems,
+	items, err := newCsgoItems(fileItems, language)
+	if err != nil {
+		return nil, err
 	}
 
-	return newCsgo(items)
+	rarities, err := items.getRarities()
+	if err != nil {
+		return nil, err
+	}
+
+	paintkits, err := items.getPaintkits()
+	if err != nil {
+		return nil, err
+	}
+
+	stickerkits, err := items.getStickerkits()
+	if err != nil {
+		return nil, err
+	}
+
+	weaponSets, err := items.getWeaponSets()
+	if err != nil {
+		return nil, err
+	}
+
+	charcaterSets, err := items.getCharacterSets()
+	if err != nil {
+		return nil, err
+	}
+
+	itemEntities, err := items.getItems()
+	if err != nil {
+		return nil, err
+	}
+
+	// Knives are not categorised into sets within the items_game.txt file,
+	// so they are handled separately.
+	knifeSet, err := items.getKnifeSet(mapTypeToMapInterface(itemEntities.knives))
+	if err != nil {
+		return nil, err
+	}
+
+	// Gloves are not categorised into sets within the items_game.txt file,
+	// so they are handled separately.
+	gloveSet, err := items.getIconSet(mapTypeToMapInterface(itemEntities.gloves))
+	if err != nil {
+		return nil, err
+	}
+
+	return &Csgo{
+		Rarities:      rarities,
+		Paintkits:     paintkits,
+		Stickerkits:   stickerkits,
+		WeaponSets:    weaponSets,
+		CharacterSets: charcaterSets,
+		KnifeSet:      knifeSet,
+		GloveSet:      gloveSet,
+
+		Guns:            itemEntities.weapons,
+		Knives:          itemEntities.knives,
+		Gloves:          itemEntities.gloves,
+		WeaponCrates:    itemEntities.crates,
+		StickerCapsules: itemEntities.stickerCapsules,
+	}, nil
 }
 
 // language represents a Csgo language file that provides the descriptions
@@ -83,17 +141,50 @@ func newLanguage(data map[string]interface{}) (*language, error) {
 type csgoItems struct {
 	items    map[string]interface{}
 	language *language
+
+	// cache attributes
+	prefabs            map[string]*itemPrefab
+	revolvingLootLists revolvingLootLists
+	clientLootLists    map[string]*clientLootList
+}
+
+// TODO comment
+func newCsgoItems(itemData map[string]interface{}, language *language) (*csgoItems, error) {
+
+	response := &csgoItems{
+		items:    itemData,
+		language: language,
+	}
+
+	prefabs, err := response.getItemPrefabs()
+	if err != nil {
+		return nil, err
+	}
+
+	response.prefabs = prefabs
+
+	revolvingLootLists, err := response.getRevolvingLootLists()
+	if err != nil {
+		return nil, err
+	}
+
+	response.revolvingLootLists = revolvingLootLists
+
+	clientLootLists, err := response.getClientLootLists()
+	if err != nil {
+		return nil, err
+	}
+
+	response.clientLootLists = clientLootLists
+
+	return response, nil
 }
 
 // Csgo is a representation of all Csgo items that are relevant to interpreting
 // the game_items file.
 type Csgo struct {
-	items *csgoItems
 
-	// custom types
-	prefabs         map[string]*itemPrefab
-	clientLootLists map[string]*clientLootList
-
+	// CSGO types
 	Rarities      map[string]*Rarity       `json:"Rarities"`
 	Paintkits     map[string]*paintkit     `json:"Paintkits"`
 	Stickerkits   map[string]*stickerkit   `json:"Stickerkits"`
@@ -103,89 +194,11 @@ type Csgo struct {
 	GloveSet      map[string][]string      `json:"GloveSet"`
 
 	// items
-	Guns         map[string]*Weapon      `json:"Guns"`
-	Knives       map[string]*Weapon      `json:"Knives"`
-	Gloves       map[string]*Gloves      `json:"Gloves"`
-	WeaponCrates map[string]*WeaponCrate `json:"WeaponCrates"`
-}
-
-// newCsgo represents the constructor for Csgo and will perform the necessary
-// preprocessing of the language and item data.
-func newCsgo(items *csgoItems) (*Csgo, error) {
-
-	// build entities from file
-	prefabs, err := items.getItemPrefabs()
-	if err != nil {
-		return nil, err
-	}
-
-	rarities, err := items.getRarities()
-	if err != nil {
-		return nil, err
-	}
-
-	clientLootLists, err := items.getClientLootLists()
-	if err != nil {
-		return nil, err
-	}
-
-	paintkits, err := items.getPaintkits()
-	if err != nil {
-		return nil, err
-	}
-
-	stickerkits, err := items.getStickerkits()
-	if err != nil {
-		return nil, err
-	}
-
-	weaponSets, err := items.getWeaponSets()
-	if err != nil {
-		return nil, err
-	}
-
-	charcaterSets, err := items.getCharacterSets()
-	if err != nil {
-		return nil, err
-	}
-
-	itemEntities, err := items.getItems(prefabs)
-	if err != nil {
-		return nil, err
-	}
-
-	// Knives are not categorised into sets within the items_game.txt file,
-	// so they are handled separately.
-	knifeSet, err := items.getKnifeSet(mapTypeToMapInterface(itemEntities.knives))
-	if err != nil {
-		return nil, err
-	}
-
-	// Gloves are not categorised into sets within the items_game.txt file,
-	// so they are handled separately.
-	gloveSet, err := items.getIconSet(mapTypeToMapInterface(itemEntities.gloves))
-	if err != nil {
-		return nil, err
-	}
-
-	return &Csgo{
-		items: items,
-
-		prefabs:         prefabs,
-		Rarities:        rarities,
-		clientLootLists: clientLootLists,
-		Paintkits:       paintkits,
-		Stickerkits:     stickerkits,
-		WeaponSets:      weaponSets,
-		CharacterSets:   charcaterSets,
-		KnifeSet:        knifeSet,
-		GloveSet:        gloveSet,
-
-		Guns:         itemEntities.weapons,
-		Knives:       itemEntities.knives,
-		Gloves:       itemEntities.gloves,
-		WeaponCrates: itemEntities.crates,
-	}, nil
+	Guns            map[string]*Weapon         `json:"Guns"`
+	Knives          map[string]*Weapon         `json:"Knives"`
+	Gloves          map[string]*Gloves         `json:"Gloves"`
+	WeaponCrates    map[string]*WeaponCrate    `json:"WeaponCrates"`
+	StickerCapsules map[string]*StickerCapsule `json:"StickerCapsules"`
 }
 
 var (
