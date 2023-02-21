@@ -103,11 +103,10 @@ type Csgo struct {
 	GloveSet      map[string][]string      `json:"GloveSet"`
 
 	// items
-	Guns            map[string]*Weapon         `json:"Guns"`
-	Knives          map[string]*Weapon         `json:"Knives"`
-	Gloves          map[string]*Gloves         `json:"Gloves"`
-	WeaponCrates    map[string]*WeaponCrate    `json:"WeaponCrates"`
-	StickerCapsules map[string]*StickerCapsule `json:"StickerCapsules"`
+	Guns         map[string]*Weapon      `json:"Guns"`
+	Knives       map[string]*Weapon      `json:"Knives"`
+	Gloves       map[string]*Gloves      `json:"Gloves"`
+	WeaponCrates map[string]*WeaponCrate `json:"WeaponCrates"`
 }
 
 // newCsgo represents the constructor for Csgo and will perform the necessary
@@ -182,11 +181,10 @@ func newCsgo(items *csgoItems) (*Csgo, error) {
 		KnifeSet:        knifeSet,
 		GloveSet:        gloveSet,
 
-		Guns:            itemEntities.weapons,
-		Knives:          itemEntities.knives,
-		Gloves:          itemEntities.gloves,
-		WeaponCrates:    itemEntities.crates,
-		StickerCapsules: itemEntities.stickerCapsules,
+		Guns:         itemEntities.weapons,
+		Knives:       itemEntities.knives,
+		Gloves:       itemEntities.gloves,
+		WeaponCrates: itemEntities.crates,
 	}, nil
 }
 
