@@ -96,22 +96,16 @@ var (
 				}
 			}
 
-			// if it is a set (identified through client_loot_lists)
-			if val, err := crawlToType[string](data, "loot_list_name"); err == nil {
-				itemType, listItems := crawlClientLootLists(val, items.clientLootLists)
+			// ignore items where the contained list is located through the key "loot_list_name" as these
+			// are either not capsules (but instead the StoreItem representing them), or are the duplicate
+			// self-opening version of a set e.g. selfopeningitem_crate_sticker_pack_riptide_surfshop
 
-				switch itemType {
-				case clientLootListItemTypeSticker:
-					return mapToStickerCapsule(data, listItems, items.language)
-				}
-			}
+			// Can be additionally split into:
+			// - Operator Dossier - (TODO)
+			// - Music Kit capsule (TODO)
+			// - Collectibles Collections (TODO)
 
-			// Can be split into:
-			// - Sticker Pack (Capsule) - (Deduce from revolving_loot_lists)
-			// - Operator Dossier - (Deduce from revolving_loot_lists) (TODO add when we support characters)
-			// - Music Kit capsule (TODO add when we support music kits)
-
-			return nil, nil // TODO
+			return nil, nil
 		},
 	}
 )
@@ -321,13 +315,13 @@ func mapToStickerCapsule(data map[string]interface{}, stickers []string, languag
 		response.Id = val
 	}
 
-	// get language Name Id
-	if val, err := crawlToType[string](data, "item_name"); err == nil {
-		lang, _ := language.lookup(val)
-		response.Name = lang
+	// TODO tmp
+	if response.Id == "crate_sticker_pack_boston2018_legends_ntv" {
+		fmt.Println()
 	}
 
-	if val, err := crawlToType[string](data, "tags", "StickerCapsule", "tag_text"); err == nil {
+	// get language Name Id
+	if val, err := crawlToType[string](data, "item_name"); err == nil {
 		lang, _ := language.lookup(val)
 		response.Name = lang
 	}

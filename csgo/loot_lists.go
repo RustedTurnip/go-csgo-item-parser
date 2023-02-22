@@ -91,8 +91,7 @@ func (c *csgoItems) getClientLootLists() (map[string]*clientLootList, error) {
 				continue
 			}
 
-			entry.listItems.listType = clientLootListItemTypeUnknown
-			entry.listItems.items = append(entry.listItems.items, itemName)
+			continue
 		}
 
 		response[entry.id] = entry
