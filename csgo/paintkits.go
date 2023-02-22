@@ -1,8 +1,8 @@
 package csgo
 
 import (
-	"errors"
 	"fmt"
+	"github.com/pkg/errors"
 	"strconv"
 )
 
@@ -93,18 +93,18 @@ func (c *csgoItems) getPaintkits() (map[string]*paintkit, error) {
 
 	rarities, err := crawlToType[map[string]interface{}](c.items, "paint_kits_rarity")
 	if err != nil {
-		return nil, fmt.Errorf("unable to extract paint_kits_rarity: %s", err.Error())
+		return nil, errors.Wrap(err, fmt.Sprintf("unable to extract paint_kits_rarity: %s", err.Error()))
 	}
 
 	kits, err := crawlToType[map[string]interface{}](c.items, "paint_kits")
 	if err != nil {
-		return nil, errors.New("unable to locate paint_kits in provided items") // TODO improve error
+		return nil, errors.Wrap(err, "unable to locate paint_kits in provided items")
 	}
 
-	for _, kit := range kits {
+	for index, kit := range kits {
 		mKit, ok := kit.(map[string]interface{})
 		if !ok {
-			return nil, errors.New("unexpected paintkit layout in paint_kits")
+			return nil, fmt.Errorf("unexpected paintkit layout in paint_kits for index (%s)", index)
 		}
 
 		converted, err := mapToPaintkit(mKit, c.language)

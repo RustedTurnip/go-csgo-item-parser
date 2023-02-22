@@ -1,7 +1,8 @@
 package csgo
 
 import (
-	"errors"
+	"fmt"
+	"github.com/pkg/errors"
 )
 
 // stickerkit represents a stickerkit object from the items_game file.
@@ -19,19 +20,19 @@ func mapToStickerkit(data map[string]interface{}, language *language) (*stickerk
 
 	// get Name
 	if val, err := crawlToType[string](data, "name"); err != nil {
-		return nil, errors.New("Id (name) missing from stickerkit") // TODO improve error
+		return nil, errors.Wrap(err, "Id (name) missing from stickerkit")
 	} else {
 		response.Id = val
 	}
 
 	// get language Name Id
 	if val, err := crawlToType[string](data, "item_name"); err != nil {
-		return nil, errors.New("language Name Id (item_name) missing from stickerkit") // TODO improve error
+		return nil, errors.Wrap(err, fmt.Sprintf("item_name missing from stickerkit (%s)", response.Id))
 	} else {
 
 		lang, _ := language.lookup(val)
 		if err != nil {
-			return nil, err // TODO improve error
+			return nil, errors.Wrap(err, fmt.Sprintf("language lookup of item_name for stickerkit failed for key %s", val))
 		}
 
 		response.Name = lang
@@ -39,7 +40,7 @@ func mapToStickerkit(data map[string]interface{}, language *language) (*stickerk
 
 	// get language Description Id
 	if val, err := crawlToType[string](data, "description_string"); err != nil {
-		return nil, errors.New("language Description Id (description_string) missing from stickerkit") // TODO improve error
+		return nil, errors.Wrap(err, fmt.Sprintf("description_string missing from stickerkit (%s)", response.Id))
 	} else {
 		lang, _ := language.lookup(val)
 		response.Description = lang
@@ -61,14 +62,14 @@ func (c *csgoItems) getStickerkits() (map[string]*stickerkit, error) {
 
 	kits, err := crawlToType[map[string]interface{}](c.items, "sticker_kits")
 	if err != nil {
-		return nil, errors.New("unable to locate paint_kits in provided items") // TODO improve error
+		return nil, errors.Wrap(err, "unable to locate sticker_kits in provided items")
 	}
 
-	for _, kit := range kits {
+	for index, kit := range kits {
 
 		mKit, ok := kit.(map[string]interface{})
 		if !ok {
-			return nil, errors.New("unexpected stickerkit layout in sticker_kits")
+			return nil, fmt.Errorf("unexpected stickerkit layout in sticker_kits (at index %s)", index)
 		}
 
 		converted, err := mapToStickerkit(mKit, c.language)

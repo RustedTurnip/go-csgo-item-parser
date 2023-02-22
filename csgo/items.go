@@ -350,7 +350,7 @@ func (c *csgoItems) getItems() (*itemContainer, error) {
 
 	items, err := crawlToType[map[string]interface{}](c.items, "items")
 	if err != nil {
-		return nil, errors.New("items missing from item data") // TODO format error better than this
+		return nil, errors.Wrap(err, "items (at path \"items\") missing from item data")
 	}
 
 	for _, itemData := range items {
@@ -407,7 +407,8 @@ func convertItem(items *csgoItems, data map[string]interface{}) (interface{}, er
 	return converter(items, data)
 }
 
-// TODO comment
+// getPrefabConversionFunc attempts to identify the correct conversion function for the item data map
+// from the item's prefab.
 func getPrefabConversionFunc(prefabId string, prefabs map[string]*itemPrefab) prefabItemConverter {
 
 	if converter, ok := itemPrefabPrefabs2[prefabId]; ok {

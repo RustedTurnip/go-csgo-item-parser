@@ -5,10 +5,12 @@ import (
 	"strings"
 )
 
-// TODO comment
+// revolvingLootLists represents the key value store of revolvingLootList ids (indexes)
+// to their corresponding client_loot_list ids.
 type revolvingLootLists map[string]string
 
-// TODO comment
+// getRevolvingLootLists pulls all revolving_llot_list index to client_loot_list id pairs
+// out of the items_game data and returns them as a revolvingLootLists.
 func (c *csgoItems) getRevolvingLootLists() (revolvingLootLists, error) {
 
 	response := make(revolvingLootLists)
@@ -25,7 +27,8 @@ func (c *csgoItems) getRevolvingLootLists() (revolvingLootLists, error) {
 	return response, nil
 }
 
-// TODO comment
+// clientLootListItemType represents the underlying type of object stored within a
+// client_loot_list.
 type clientLootListItemType int
 
 const (
@@ -34,7 +37,8 @@ const (
 	clientLootListItemTypeSticker
 )
 
-// TODO comment
+// clientLootListItems represents an item list for items within a client_loot_list,
+// along with the items' type.
 type clientLootListItems struct {
 	listType clientLootListItemType
 	items    []string

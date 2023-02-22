@@ -1,8 +1,8 @@
 package csgo
 
 import (
-	"errors"
 	"fmt"
+	"github.com/pkg/errors"
 	"strings"
 )
 
@@ -18,7 +18,7 @@ func New(languageData, itemData map[string]interface{}) (*Csgo, error) {
 	// check items base data exists
 	fileItems, err := crawlToType[map[string]interface{}](itemData, "items_game")
 	if err != nil {
-		return nil, errors.New("unable to locate \"items_game\" in provided itemData") // TODO format error better than this
+		return nil, errors.Wrap(err, "unable to locate \"items_game\" in provided itemData")
 	}
 
 	items, err := newCsgoItems(fileItems, language)
@@ -148,7 +148,7 @@ type csgoItems struct {
 	clientLootLists    map[string]*clientLootList
 }
 
-// TODO comment
+// newCsgoItems is the csgoItems constructor.
 func newCsgoItems(itemData map[string]interface{}, language *language) (*csgoItems, error) {
 
 	response := &csgoItems{
