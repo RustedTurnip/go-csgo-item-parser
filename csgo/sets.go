@@ -91,7 +91,6 @@ func splitItemPaintkitString(itemPaintkit string) (string, string, error) {
 
 	match := weaponPaintkitRe.FindStringSubmatch(itemPaintkit)
 	if len(match) != 3 {
-		fmt.Println(itemPaintkit)
 		return "", "", errors.New("unexpected [Weapon]paintkit format")
 	}
 

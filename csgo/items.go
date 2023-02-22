@@ -315,11 +315,6 @@ func mapToStickerCapsule(data map[string]interface{}, stickers []string, languag
 		response.Id = val
 	}
 
-	// TODO tmp
-	if response.Id == "crate_sticker_pack_boston2018_legends_ntv" {
-		fmt.Println()
-	}
-
 	// get language Name Id
 	if val, err := crawlToType[string](data, "item_name"); err == nil {
 		lang, _ := language.lookup(val)
