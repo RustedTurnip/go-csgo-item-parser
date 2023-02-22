@@ -10,14 +10,14 @@ import (
 )
 
 var (
-	csgoItemsLocation   string
-	csgoEnglishLocation string
-	outputLocation      string
+	csgoItemsLocation    string
+	csgoLanguageLocation string
+	outputLocation       string
 )
 
 func init() {
 	flag.StringVar(&csgoItemsLocation, "csgo-items", "/items_game.txt", "the path to the csgo_items.txt file")
-	flag.StringVar(&csgoEnglishLocation, "csgo-english", "/csgo_english.txt", "the path to the csgo_english.txt file")
+	flag.StringVar(&csgoLanguageLocation, "csgo-language", "/csgo_english.txt", "the path to the csgo_english.txt file")
 	flag.StringVar(&outputLocation, "output", "/result.json", "the path to resulting json output file")
 }
 
@@ -26,7 +26,7 @@ func main() {
 	flag.Parse()
 
 	// read data
-	languageData, err := parser.Parse(csgoEnglishLocation)
+	languageData, err := parser.Parse(csgoLanguageLocation)
 	if err != nil {
 		panic(err)
 	}
