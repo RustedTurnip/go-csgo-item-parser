@@ -17,7 +17,7 @@ type paintkit struct {
 	Id          string
 	Name        string
 	Description string
-	Rarity      string
+	RarityId    string
 	MinFloat    float64
 	MaxFloat    float64
 }
@@ -113,7 +113,7 @@ func (c *csgoItems) getPaintkits() (map[string]*paintkit, error) {
 		}
 
 		if rarity, ok := rarities[converted.Id].(string); ok {
-			converted.Rarity = rarity
+			converted.RarityId = rarity
 		}
 
 		response[converted.Id] = converted
