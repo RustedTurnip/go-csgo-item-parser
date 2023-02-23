@@ -3,11 +3,13 @@ package csgo
 import (
 	"fmt"
 	"github.com/pkg/errors"
+	"strconv"
 )
 
 // Rarity represents a Csgo item Rarity.
 type Rarity struct {
 	Id                  string
+	Index               int
 	GeneralRarityName   string
 	WeaponRarityName    string
 	CharacterRarityName string
@@ -18,6 +20,17 @@ func mapToRarity(id string, data map[string]interface{}, language *language) (*R
 
 	response := &Rarity{
 		Id: id,
+	}
+
+	// get index
+	if val, ok := data["value"].(string); ok {
+		if valInt, err := strconv.Atoi(val); err == nil {
+			response.Index = valInt
+		} else {
+			return nil, errors.Wrap(err, fmt.Sprintf("unexpected index (value) type: %s", val))
+		}
+	} else {
+		return nil, fmt.Errorf("rarity (%s) missing expected field \"value\"", response.Id)
 	}
 
 	if key, err := crawlToType[string](data, "loc_key"); err == nil {
