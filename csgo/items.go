@@ -2,6 +2,8 @@ package csgo
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/pkg/errors"
 )
 
@@ -26,7 +28,7 @@ var (
 	}
 )
 
-type prefabItemConverter func(*csgoItems, map[string]interface{}) (interface{}, error)
+type prefabItemConverter func(*csgoItems, int, map[string]interface{}) (interface{}, error)
 
 var (
 	// itemPrefabPrefabs is a map of all prefabs that exist against item prefabs
@@ -53,35 +55,35 @@ var (
 
 	itemPrefabPrefabs2 = map[string]prefabItemConverter{
 
-		"primary": func(items *csgoItems, data map[string]interface{}) (interface{}, error) {
-			return mapToWeapon(data, items.prefabs, items.language)
+		"primary": func(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
+			return mapToWeapon(index, data, items.prefabs, items.language)
 		},
 
-		"secondary": func(items *csgoItems, data map[string]interface{}) (interface{}, error) {
-			return mapToWeapon(data, items.prefabs, items.language)
+		"secondary": func(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
+			return mapToWeapon(index, data, items.prefabs, items.language)
 		},
 
-		"melee_unusual": func(items *csgoItems, data map[string]interface{}) (interface{}, error) {
-			return mapToWeapon(data, items.prefabs, items.language)
+		"melee_unusual": func(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
+			return mapToWeapon(index, data, items.prefabs, items.language)
 		},
 
-		"hands": func(items *csgoItems, data map[string]interface{}) (interface{}, error) {
-			return mapToGloves(data, items.language)
+		"hands": func(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
+			return mapToGloves(index, data, items.language)
 		},
 
-		"weapon_case": func(items *csgoItems, data map[string]interface{}) (interface{}, error) {
-			return mapToWeaponCrate(data, items.language)
+		"weapon_case": func(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
+			return mapToWeaponCrate(index, data, items.language)
 		},
 
-		"weapon_case_souvenirpkg": func(items *csgoItems, data map[string]interface{}) (interface{}, error) {
-			return mapToWeaponCrate(data, items.language)
+		"weapon_case_souvenirpkg": func(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
+			return mapToWeaponCrate(index, data, items.language)
 		},
 
-		"weapon_case_base": func(items *csgoItems, data map[string]interface{}) (interface{}, error) {
+		"weapon_case_base": func(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
 
 			// weapon crate cast
 			if _, err := crawlToType[string](data, "tags", "ItemSet", "tag_value"); err == nil {
-				return mapToWeaponCrate(data, items.language)
+				return mapToWeaponCrate(index, data, items.language)
 			}
 
 			// if it is a set (identified through revolving_loot_lists)
@@ -91,7 +93,7 @@ var (
 
 					switch itemType {
 					case clientLootListItemTypeSticker:
-						return mapToStickerCapsule(data, listItems, items.language)
+						return mapToStickerCapsule(index, data, listItems, items.language)
 					}
 				}
 			}
@@ -132,15 +134,18 @@ type itemContainer struct {
 // Weapon represents a skinnable item that is also a Weapon in Csgo.
 type Weapon struct {
 	Id          string
+	Index       int
 	Name        string
 	Description string
 }
 
 // mapToWeapon converts the provided map into a Weapon providing
 // all required parameters are present and of the correct type.
-func mapToWeapon(data map[string]interface{}, prefabs map[string]*itemPrefab, language *language) (*Weapon, error) {
+func mapToWeapon(index int, data map[string]interface{}, prefabs map[string]*itemPrefab, language *language) (*Weapon, error) {
 
-	response := &Weapon{}
+	response := &Weapon{
+		Index: index,
+	}
 
 	// get Name
 	if val, err := crawlToType[string](data, "name"); err != nil {
@@ -187,15 +192,18 @@ func mapToWeapon(data map[string]interface{}, prefabs map[string]*itemPrefab, la
 // Gloves represents a special skinnable item that isn't a Weapon.
 type Gloves struct {
 	Id          string
+	Index       int
 	Name        string
 	Description string
 }
 
 // mapToGloves converts the provided map into Gloves providing
 // all required parameters are present and of the correct type.
-func mapToGloves(data map[string]interface{}, language *language) (*Gloves, error) {
+func mapToGloves(index int, data map[string]interface{}, language *language) (*Gloves, error) {
 
-	response := &Gloves{}
+	response := &Gloves{
+		Index: index,
+	}
 
 	// get Name
 	if val, err := crawlToType[string](data, "name"); err != nil {
@@ -227,6 +235,7 @@ func mapToGloves(data map[string]interface{}, language *language) (*Gloves, erro
 // are determined by the linked WeaponSet (item_set).
 type WeaponCrate struct {
 	Id          string
+	Index       int
 	Name        string
 	Description string
 
@@ -241,9 +250,10 @@ type WeaponCrate struct {
 
 // mapToWeaponCrate converts the provided map into a WeaponCrate providing
 // all required parameters are present and of the correct type.
-func mapToWeaponCrate(data map[string]interface{}, language *language) (*WeaponCrate, error) {
+func mapToWeaponCrate(index int, data map[string]interface{}, language *language) (*WeaponCrate, error) {
 
 	response := &WeaponCrate{
+		Index:             index,
 		QualityCapability: qualityNormal,
 	}
 
@@ -295,6 +305,7 @@ func mapToWeaponCrate(data map[string]interface{}, language *language) (*WeaponC
 // stickers are determined by the linked clientLootListId (client_loot_list).
 type StickerCapsule struct {
 	Id          string
+	Index       int
 	Name        string
 	Description string
 	StickerKits []string
@@ -302,9 +313,10 @@ type StickerCapsule struct {
 
 // mapToStickerCapsule converts the provided map into a StickerCapsule providing
 // all required parameters are present and of the correct type.
-func mapToStickerCapsule(data map[string]interface{}, stickers []string, language *language) (*StickerCapsule, error) {
+func mapToStickerCapsule(index int, data map[string]interface{}, stickers []string, language *language) (*StickerCapsule, error) {
 
 	response := &StickerCapsule{
+		Index:       index,
 		StickerKits: stickers,
 	}
 
@@ -353,14 +365,23 @@ func (c *csgoItems) getItems() (*itemContainer, error) {
 		return nil, errors.Wrap(err, "items (at path \"items\") missing from item data")
 	}
 
-	for _, itemData := range items {
+	for index, itemData := range items {
+
+		if index == "default" {
+			continue
+		}
+
+		iIndex, err := strconv.Atoi(index)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("unable to interpret item index (%s) as int", iIndex))
+		}
 
 		itemMap, ok := itemData.(map[string]interface{})
 		if !ok {
 			return nil, errors.New("unexpected item format found when fetching items")
 		}
 
-		converted, err := convertItem(c, itemMap)
+		converted, err := convertItem(c, iIndex, itemMap)
 		if err != nil {
 			return nil, err
 		}
@@ -392,7 +413,7 @@ func (c *csgoItems) getItems() (*itemContainer, error) {
 
 // getItemType attempts to identify an items_game.txt item by assessing its prefab
 // (where applicable) or otherwise assessing the contained fields.
-func convertItem(items *csgoItems, data map[string]interface{}) (interface{}, error) {
+func convertItem(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
 
 	prefab, ok := data["prefab"].(string)
 	if !ok {
@@ -404,7 +425,7 @@ func convertItem(items *csgoItems, data map[string]interface{}) (interface{}, er
 		return nil, nil
 	}
 
-	return converter(items, data)
+	return converter(items, index, data)
 }
 
 // getPrefabConversionFunc attempts to identify the correct conversion function for the item data map
