@@ -31,29 +31,9 @@ var (
 type prefabItemConverter func(*csgoItems, int, map[string]interface{}) (interface{}, error)
 
 var (
-	// itemPrefabPrefabs is a map of all prefabs that exist against item prefabs
-	// that we need to track.
-	itemPrefabPrefabs = map[string]itemType{
-
-		"": itemTypeUnknown,
-
-		// Guns
-		"primary":       itemTypeWeaponGun,   // covers ay Weapon that can be primary (e.g. smg)
-		"secondary":     itemTypeWeaponGun,   // covers any Weapon that can be secondary (e.g. pistol)
-		"melee_unusual": itemTypeWeaponKnife, // covers all tradable Knives
-
-		// Gloves
-		"hands": itemTypeGloves, // covers Gloves
-
-		// crates
-		"weapon_case":             itemTypeCrate,
-		"weapon_case_souvenirpkg": itemTypeCrate,
-
-		// stickers
-		"sticker_capsule": itemTypeStickerCapsule,
-	}
-
-	itemPrefabPrefabs2 = map[string]prefabItemConverter{
+	// itemPrefabPrefabs provides a mapping of recognised prefab types, to their corresponding
+	// item identifying function.
+	itemPrefabPrefabs = map[string]prefabItemConverter{
 
 		"primary": func(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
 			return mapToWeapon(index, data, items.prefabs, items.language)
@@ -432,7 +412,7 @@ func convertItem(items *csgoItems, index int, data map[string]interface{}) (inte
 // from the item's prefab.
 func getPrefabConversionFunc(prefabId string, prefabs map[string]*itemPrefab) prefabItemConverter {
 
-	if converter, ok := itemPrefabPrefabs2[prefabId]; ok {
+	if converter, ok := itemPrefabPrefabs[prefabId]; ok {
 		return converter
 	}
 

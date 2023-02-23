@@ -11,15 +11,13 @@ type itemPrefab struct {
 	parentPrefab string
 	name         string
 	description  string
-	itemType     itemType
 }
 
 // mapToItemPrefab converts the provided map (data) into a prefab object.
 func mapToItemPrefab(id string, data map[string]interface{}, language *language) (*itemPrefab, error) {
 
 	response := &itemPrefab{
-		id:       id,
-		itemType: itemPrefabPrefabs[id],
+		id: id,
 	}
 
 	if val, ok := data["prefab"].(string); ok {
@@ -35,8 +33,6 @@ func mapToItemPrefab(id string, data map[string]interface{}, language *language)
 		lang, _ := language.lookup(val)
 		response.description = lang
 	}
-
-	response.itemType = getPrefabItemType(id, data)
 
 	return response, nil
 }
@@ -69,24 +65,4 @@ func (c *csgoItems) getItemPrefabs() (map[string]*itemPrefab, error) {
 	}
 
 	return response, nil
-}
-
-// getPrefabItemType can be used to identify some prefabs for the itemType they
-// represent. There isn't a consistent way to do this, but a combination of checks
-// are used to identify the item type.
-func getPrefabItemType(id string, data map[string]interface{}) itemType {
-
-	if it, ok := itemPrefabPrefabs[id]; ok {
-		return it
-	}
-
-	if val, _ := data["inv_container_and_tools"].(string); val == "sticker_capsule" {
-		return itemTypeStickerCapsule
-	}
-
-	if _, err := crawlToType[map[string]interface{}](data, "tags", "StickerCapsule"); err == nil {
-		return itemTypeStickerCapsule
-	}
-
-	return itemTypeUnknown
 }
