@@ -8,11 +8,11 @@ import (
 
 // Rarity represents a Csgo item Rarity.
 type Rarity struct {
-	Id                  string
-	Index               int
-	GeneralRarityName   string
-	WeaponRarityName    string
-	CharacterRarityName string
+	Id                  string `json:"id"`
+	Index               int    `json:"index"`
+	GeneralRarityName   string `json:"generalRarityName"`
+	WeaponRarityName    string `json:"weaponRarityName"`
+	CharacterRarityName string `json:"characterRarityName"`
 }
 
 // mapToRarity converts the provided data map into a Rarity object.

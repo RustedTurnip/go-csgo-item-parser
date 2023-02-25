@@ -11,29 +11,29 @@ const (
 	defaultMaxFloat float64 = 0.8
 )
 
-// paintkit represents the image details of a skin, i.e. the available float
-// range the skin can be in. Every entities.Skin has an associated paintkit.
-type paintkit struct {
-	Id          string
-	Name        string
-	Description string
-	RarityId    string
-	MinFloat    float64
-	MaxFloat    float64
+// Paintkit represents the image details of a skin, i.e. the available float
+// range the skin can be in. Every entities.Skin has an associated Paintkit.
+type Paintkit struct {
+	Id          string  `json:"id"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	RarityId    string  `json:"rarityId"`
+	MinFloat    float64 `json:"minFloat"`
+	MaxFloat    float64 `json:"maxFloat"`
 }
 
-// mapToPaintkit converts the provided map into a paintkit providing
+// mapToPaintkit converts the provided map into a Paintkit providing
 // all required parameters are present and of the correct type.
-func mapToPaintkit(data map[string]interface{}, language *language) (*paintkit, error) {
+func mapToPaintkit(data map[string]interface{}, language *language) (*Paintkit, error) {
 
-	response := &paintkit{
+	response := &Paintkit{
 		MinFloat: defaultMinFloat,
 		MaxFloat: defaultMaxFloat,
 	}
 
 	// get Name
 	if val, err := crawlToType[string](data, "name"); err != nil {
-		return nil, errors.New("Id (name) missing from paintkit")
+		return nil, errors.New("Id (name) missing from Paintkit")
 	} else {
 		response.Id = val
 	}
@@ -63,7 +63,7 @@ func mapToPaintkit(data map[string]interface{}, language *language) (*paintkit, 
 		if valFloat, err := strconv.ParseFloat(val, 64); err == nil {
 			response.MinFloat = valFloat
 		} else {
-			return nil, errors.New("paintkit has non-float min float value (wear_remap_min)")
+			return nil, errors.New("Paintkit has non-float min float value (wear_remap_min)")
 		}
 	}
 
@@ -72,7 +72,7 @@ func mapToPaintkit(data map[string]interface{}, language *language) (*paintkit, 
 		if valFloat, err := strconv.ParseFloat(val, 64); err == nil {
 			response.MaxFloat = valFloat
 		} else {
-			return nil, errors.New("paintkit has non-float max float value (wear_remap_max)")
+			return nil, errors.New("Paintkit has non-float max float value (wear_remap_max)")
 		}
 	}
 
@@ -80,10 +80,10 @@ func mapToPaintkit(data map[string]interface{}, language *language) (*paintkit, 
 }
 
 // getPaintkits gathers all Paintkits in the provided items data and returns them
-// as map[paintkitId]paintkit.
-func (c *csgoItems) getPaintkits() (map[string]*paintkit, error) {
+// as map[paintkitId]Paintkit.
+func (c *csgoItems) getPaintkits() (map[string]*Paintkit, error) {
 
-	response := map[string]*paintkit{
+	response := map[string]*Paintkit{
 		"vanilla": {
 			Id:       "vanilla",
 			MinFloat: defaultMinFloat,
@@ -104,7 +104,7 @@ func (c *csgoItems) getPaintkits() (map[string]*paintkit, error) {
 	for index, kit := range kits {
 		mKit, ok := kit.(map[string]interface{})
 		if !ok {
-			return nil, fmt.Errorf("unexpected paintkit layout in paint_kits for index (%s)", index)
+			return nil, fmt.Errorf("unexpected Paintkit layout in paint_kits for index (%s)", index)
 		}
 
 		converted, err := mapToPaintkit(mKit, c.language)

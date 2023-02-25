@@ -8,17 +8,17 @@ import (
 )
 
 var (
-	// weaponPaintkitRe is the pattern of a item Id and paintkit Id item set
+	// weaponPaintkitRe is the pattern of a item Id and Paintkit Id item set
 	// string that looks like: "[paint_kit_id]weapon_id"
 	weaponPaintkitRe = regexp.MustCompile("^\\[([a-zA-Z0-9_\\-)]+)\\]([a-zA-Z0-9_\\-]+)$")
 )
 
 // WeaponSet represents a WeaponSet of items from the items_game file.
 type WeaponSet struct {
-	Id          string
-	Name        string
-	Description string
-	Items       map[string]string
+	Id          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Items       map[string]string `json:"items"`
 }
 
 // mapToWeaponSet converts the provided map into a WeaponSet providing
@@ -83,7 +83,7 @@ func mapToWeaponSet(id string, data map[string]interface{}, language *language) 
 }
 
 // splitItemPaintkitString splits a WeaponSet item string that represents
-// an item ID - paintkit ID mapping into an item ID and paintkit ID.
+// an item ID - Paintkit ID mapping into an item ID and Paintkit ID.
 //
 // If the provided string cannot be parsed into the two ids, an error is
 // returned.
@@ -91,7 +91,7 @@ func splitItemPaintkitString(itemPaintkit string) (string, string, error) {
 
 	match := weaponPaintkitRe.FindStringSubmatch(itemPaintkit)
 	if len(match) != 3 {
-		return "", "", errors.New("unexpected [Weapon]paintkit format")
+		return "", "", errors.New("unexpected [Weapon]Paintkit format")
 	}
 
 	return match[2], match[1], nil
@@ -131,10 +131,10 @@ func (c *csgoItems) getWeaponSets() (map[string]*WeaponSet, error) {
 
 // CharacterSet represents a CharacterSet of items from the items_game file.
 type CharacterSet struct {
-	Id          string
-	Name        string
-	Description string
-	Items       []string
+	Id          string   `json:"id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Items       []string `json:"items"`
 }
 
 // mapToCharacterSet converts the provided map into a CharacterSet providing

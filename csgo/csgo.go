@@ -186,8 +186,8 @@ type Csgo struct {
 
 	// CSGO types
 	Rarities      map[string]*Rarity       `json:"Rarities"`
-	Paintkits     map[string]*paintkit     `json:"Paintkits"`
-	Stickerkits   map[string]*stickerkit   `json:"Stickerkits"`
+	Paintkits     map[string]*Paintkit     `json:"Paintkits"`
+	Stickerkits   map[string]*Stickerkit   `json:"Stickerkits"`
 	WeaponSets    map[string]*WeaponSet    `json:"WeaponSets"`
 	CharacterSets map[string]*CharacterSet `json:"CharacterSets"`
 	KnifeSet      map[string][]string      `json:"KnifeSet"`

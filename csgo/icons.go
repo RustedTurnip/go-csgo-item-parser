@@ -24,7 +24,7 @@ func (c *csgoItems) getKnifeSet(knifeIds map[string]interface{}) (map[string][]s
 	return set, nil
 }
 
-// getIconSet is used to extract the Weapon id-paintkit id combinations from the
+// getIconSet is used to extract the Weapon id-Paintkit id combinations from the
 // alternate_icons2 list from items_game.txt. This can be used to extract items
 // that do not appear in any sets defined elsewhere within the file.
 func (c *csgoItems) getIconSet(itemIds map[string]interface{}) (map[string][]string, error) {
@@ -95,7 +95,7 @@ func findLongestIdMatch[T any](ids map[string]T, path string) string {
 }
 
 // getItemPaintkitFromIconPath will extract from the provided path, the
-// paintkit ID. itemID is required to distinguish the paintkit from the
+// Paintkit ID. itemID is required to distinguish the Paintkit from the
 // Weapon.
 func getItemPaintkitFromIconPath(itemId string, path string) (string, string, error) {
 
@@ -114,5 +114,5 @@ func getItemPaintkitFromIconPath(itemId string, path string) (string, string, er
 		return iId, pkId, nil
 	}
 
-	return "", "", fmt.Errorf("unable to derive Weapon and paintkit from icon path: %s", path)
+	return "", "", fmt.Errorf("unable to derive Weapon and Paintkit from icon path: %s", path)
 }

@@ -113,10 +113,10 @@ type itemContainer struct {
 
 // Weapon represents a skinnable item that is also a Weapon in Csgo.
 type Weapon struct {
-	Id          string
-	Index       int
-	Name        string
-	Description string
+	Id          string `json:"id"`
+	Index       int    `json:"index"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 // mapToWeapon converts the provided map into a Weapon providing
@@ -171,10 +171,10 @@ func mapToWeapon(index int, data map[string]interface{}, prefabs map[string]*ite
 
 // Gloves represents a special skinnable item that isn't a Weapon.
 type Gloves struct {
-	Id          string
-	Index       int
-	Name        string
-	Description string
+	Id          string `json:"id"`
+	Index       int    `json:"index"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 // mapToGloves converts the provided map into Gloves providing
@@ -214,18 +214,18 @@ func mapToGloves(index int, data map[string]interface{}, language *language) (*G
 // WeaponCrate represents an openable crate that contains items. The crate's items
 // are determined by the linked WeaponSet (item_set).
 type WeaponCrate struct {
-	Id          string
-	Index       int
-	Name        string
-	Description string
+	Id          string `json:"id"`
+	Index       int    `json:"index"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 
-	// WeaponSetId is the ID of the WeaponSet for the item/paintkit combinations
+	// WeaponSetId is the ID of the WeaponSet for the item/Paintkit combinations
 	// available in the crate.
-	WeaponSetId string
+	WeaponSetId string `json:"weaponSetId"`
 
 	// QualityCapability shows whether the crate can produce special skin qualities
 	// e.g. Souvenir or StatTrak™
-	QualityCapability WeaponQuality
+	QualityCapability WeaponQuality `json:"qualityCapability"`
 }
 
 // mapToWeaponCrate converts the provided map into a WeaponCrate providing
@@ -284,11 +284,11 @@ func mapToWeaponCrate(index int, data map[string]interface{}, language *language
 // StickerCapsule represents an openable capsule that contains stickers. The capsule's
 // stickers are determined by the linked clientLootListId (client_loot_list).
 type StickerCapsule struct {
-	Id          string
-	Index       int
-	Name        string
-	Description string
-	StickerKits []string
+	Id          string   `json:"id"`
+	Index       int      `json:"index"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	StickerKits []string `json:"stickerKits"`
 }
 
 // mapToStickerCapsule converts the provided map into a StickerCapsule providing
