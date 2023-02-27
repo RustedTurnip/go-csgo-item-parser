@@ -200,7 +200,7 @@ type WeaponCrate struct {
 
 	// WeaponSetId is the ID of the WeaponSet for the item/Paintkit combinations
 	// available in the crate.
-	WeaponSetId string `json:"weaponSetId"`
+	WeaponSetIds []string `json:"weaponSetIds"`
 
 	// QualityCapability shows whether the crate can produce special skin qualities
 	// e.g. Souvenir or StatTrak™
@@ -253,7 +253,17 @@ func mapToWeaponCrate(index int, data map[string]interface{}, language *language
 	}
 
 	if val, err := crawlToType[string](data, "tags", "ItemSet", "tag_value"); err == nil {
-		response.WeaponSetId = val
+		response.WeaponSetIds = append(response.WeaponSetIds, val)
+	}
+
+	if response.WeaponSetIds == nil {
+		// the earliest crates were comprised of these sets, but the link doesn't exist within the
+		// items_game file.
+		response.WeaponSetIds = []string{
+			"set_lake",
+			"set_italy",
+			"set_safehouse",
+		}
 	}
 
 	return response, nil
