@@ -14,10 +14,10 @@ var (
 
 // WeaponSet represents a WeaponSet of items from the items_game file.
 type WeaponSet struct {
-	Id          string            `json:"id"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Items       map[string]string `json:"items"`
+	Id          string              `json:"id"`
+	Name        string              `json:"name"`
+	Description string              `json:"description"`
+	Items       map[string][]string `json:"items"`
 }
 
 // mapToWeaponSet converts the provided map into a WeaponSet providing
@@ -29,7 +29,7 @@ func mapToWeaponSet(id string, data map[string]interface{}, language *language) 
 
 	response := &WeaponSet{
 		Id:    id,
-		Items: make(map[string]string),
+		Items: make(map[string][]string),
 	}
 
 	// get language Name Id
@@ -70,7 +70,7 @@ func mapToWeaponSet(id string, data map[string]interface{}, language *language) 
 			continue
 		}
 
-		response.Items[paintkitId] = itemId
+		response.Items[paintkitId] = append(response.Items[paintkitId], itemId)
 	}
 
 	// if set doesn't contain any weapons, return nothing
