@@ -107,6 +107,10 @@ func (c *csgoItems) getPaintkits() (map[string]*Paintkit, error) {
 			return nil, err
 		}
 
+		if converted.Id == "workshop_default" {
+			continue
+		}
+
 		if rarity, ok := rarities[converted.Id].(string); ok {
 			converted.RarityId = rarity
 		}
