@@ -27,6 +27,7 @@ type Paintkit struct {
 func mapToPaintkit(data map[string]interface{}, language *language) (*Paintkit, error) {
 
 	response := &Paintkit{
+		RarityId: "common", // common is "default" rarity
 		MinFloat: defaultMinFloat,
 		MaxFloat: defaultMaxFloat,
 	}
