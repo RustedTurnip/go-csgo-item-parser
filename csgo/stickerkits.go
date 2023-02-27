@@ -2,6 +2,7 @@ package csgo
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -42,6 +43,7 @@ var (
 // Stickerkit represents a Stickerkit object from the items_game file.
 type Stickerkit struct {
 	Id          string `json:"id"`
+	Index       int    `json:"index"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	RarityId    string `json:"rarityId"`
@@ -49,9 +51,10 @@ type Stickerkit struct {
 }
 
 // mapToStickerkit converts the provided data map into a Stickerkit object.
-func mapToStickerkit(data map[string]interface{}, language *language) (*Stickerkit, error) {
+func mapToStickerkit(index int, data map[string]interface{}, language *language) (*Stickerkit, error) {
 
 	response := &Stickerkit{
+		Index:   index,
 		Variant: "Paper",
 	}
 
@@ -122,12 +125,17 @@ func (c *csgoItems) getStickerkits() (map[string]*Stickerkit, error) {
 
 	for index, kit := range kits {
 
+		iIndex, err := strconv.Atoi(index)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("unable to interpret Stickerkit index (%s) as int", iIndex))
+		}
+
 		mKit, ok := kit.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("unexpected Stickerkit layout in sticker_kits (at index %s)", index)
 		}
 
-		converted, err := mapToStickerkit(mKit, c.language)
+		converted, err := mapToStickerkit(iIndex, mKit, c.language)
 		if err != nil {
 			return nil, err
 		}
