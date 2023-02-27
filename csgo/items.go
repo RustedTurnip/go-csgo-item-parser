@@ -75,9 +75,9 @@ var (
 type WeaponQuality string
 
 var (
-	qualityNormal   WeaponQuality = "Normal"
-	qualityStatTrak WeaponQuality = "StatTrak™"
-	qualitySouvenir WeaponQuality = "Souvenir"
+	QualityNormal   WeaponQuality = ""
+	QualityStatTrak WeaponQuality = "StatTrak™"
+	QualitySouvenir WeaponQuality = "Souvenir"
 )
 
 // itemContainer is just a grouping of relevant items_game items that are parsed
@@ -213,7 +213,7 @@ func mapToWeaponCrate(index int, data map[string]interface{}, language *language
 
 	response := &WeaponCrate{
 		Index:             index,
-		QualityCapability: qualityNormal,
+		QualityCapability: QualityNormal,
 	}
 
 	// get Name
@@ -245,10 +245,10 @@ func mapToWeaponCrate(index int, data map[string]interface{}, language *language
 
 		switch val {
 		case "weapon_case":
-			response.QualityCapability = qualityStatTrak
+			response.QualityCapability = QualityStatTrak
 
 		case "weapon_case_souvenirpkg":
-			response.QualityCapability = qualitySouvenir
+			response.QualityCapability = QualitySouvenir
 		}
 	}
 
