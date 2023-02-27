@@ -7,27 +7,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// itemType is used to categorise what type of item is being dealt with.
-type itemType int
-
-const (
-	itemTypeUnknown itemType = iota
-	itemTypeWeaponGun
-	itemTypeWeaponKnife
-	itemTypeGloves
-	itemTypeCrate
-	itemTypeStickerCapsule
-)
-
-var (
-	// itemIdTypePrefixes stores a number of recognised item Id prefixes
-	// if an item is unidentifiable otherwise.
-	itemIdTypePrefixes = map[string]itemType{
-		"crate_sticker_pack_":   itemTypeStickerCapsule,
-		"crate_signature_pack_": itemTypeStickerCapsule,
-	}
-)
-
 type prefabItemConverter func(*csgoItems, int, map[string]interface{}) (interface{}, error)
 
 var (
