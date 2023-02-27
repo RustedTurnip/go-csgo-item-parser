@@ -49,7 +49,7 @@ func mapToRarity(id string, data map[string]interface{}, language *language) (*R
 
 	if key, err := crawlToType[string](data, "loc_key_character"); err == nil {
 		lang, _ := language.lookup(key)
-		response.WeaponRarityName = lang
+		response.CharacterRarityName = lang
 	} else {
 		return nil, errors.Wrap(err, fmt.Sprintf("unable to locate language Name character Id (loc_key_character) from Rarity %s", response.Id))
 	}
