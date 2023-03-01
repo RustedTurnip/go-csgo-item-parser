@@ -135,6 +135,11 @@ func (c *csgoItems) getStickerkits() (map[string]*Stickerkit, error) {
 			return nil, fmt.Errorf("unexpected Stickerkit layout in sticker_kits (at index %s)", index)
 		}
 
+		// if no item_name, or item_name indicates that item isn't a sticker kit
+		if val, ok := mKit["item_name"].(string); !ok || !strings.HasPrefix(val, "#StickerKit_") {
+			continue
+		}
+
 		converted, err := mapToStickerkit(iIndex, mKit, c.language)
 		if err != nil {
 			return nil, err
