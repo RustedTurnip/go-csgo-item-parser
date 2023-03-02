@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"regexp"
+	"strings"
 )
 
 var (
@@ -108,6 +109,12 @@ func (c *csgoItems) getWeaponSets() (map[string]*WeaponSet, error) {
 	response := make(map[string]*WeaponSet)
 
 	for setId, set := range collections {
+
+		// rudimentary check to see if set is a character set or weapon set
+		if strings.HasSuffix(setId, "_characters") {
+			continue
+		}
+
 		data, ok := set.(map[string]interface{})
 		if !ok {
 			return nil, errors.New("unexpected format for item_set data")
