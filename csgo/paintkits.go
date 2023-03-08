@@ -2,24 +2,25 @@ package csgo
 
 import (
 	"fmt"
+
 	"github.com/pkg/errors"
-	"strconv"
+	"github.com/shopspring/decimal"
 )
 
-const (
-	defaultMinFloat float64 = 0.06
-	defaultMaxFloat float64 = 0.8
+var (
+	defaultMinFloat = decimal.RequireFromString("0.06")
+	defaultMaxFloat = decimal.RequireFromString("0.8")
 )
 
 // Paintkit represents the image details of a skin, i.e. the available float
 // range the skin can be in. Every entities.Skin has an associated Paintkit.
 type Paintkit struct {
-	Id          string  `json:"id"`
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	RarityId    string  `json:"rarityId"`
-	MinFloat    float64 `json:"minFloat"`
-	MaxFloat    float64 `json:"maxFloat"`
+	Id          string          `json:"id"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	RarityId    string          `json:"rarityId"`
+	MinFloat    decimal.Decimal `json:"minFloat"`
+	MaxFloat    decimal.Decimal `json:"maxFloat"`
 }
 
 // mapToPaintkit converts the provided map into a Paintkit providing
@@ -61,7 +62,7 @@ func mapToPaintkit(data map[string]interface{}, language *language) (*Paintkit, 
 
 	// get min float
 	if val, ok := data["wear_remap_min"].(string); ok {
-		if valFloat, err := strconv.ParseFloat(val, 64); err == nil {
+		if valFloat, err := decimal.NewFromString(val); err == nil {
 			response.MinFloat = valFloat
 		} else {
 			return nil, errors.New("Paintkit has non-float min float value (wear_remap_min)")
@@ -70,7 +71,7 @@ func mapToPaintkit(data map[string]interface{}, language *language) (*Paintkit, 
 
 	// get max float
 	if val, ok := data["wear_remap_max"].(string); ok {
-		if valFloat, err := strconv.ParseFloat(val, 64); err == nil {
+		if valFloat, err := decimal.NewFromString(val); err == nil {
 			response.MaxFloat = valFloat
 		} else {
 			return nil, errors.New("Paintkit has non-float max float value (wear_remap_max)")
