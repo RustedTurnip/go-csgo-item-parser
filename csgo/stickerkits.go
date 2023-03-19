@@ -21,6 +21,10 @@ const (
 )
 
 var (
+	excludedStickerkitIdSuffixes = map[string]interface{}{
+		"_graffiti": struct{}{},
+	}
+
 	stickerVariantIdSuffixes = map[string]stickerVariant{
 		"_paper":      stickerVariantPaper,
 		"_glossy":     stickerVariantGlossy,
@@ -123,6 +127,7 @@ func (c *csgoItems) getStickerkits() (map[string]*Stickerkit, error) {
 		return nil, errors.Wrap(err, "unable to locate sticker_kits in provided items")
 	}
 
+StickerkitLoop:
 	for index, kit := range kits {
 
 		iIndex, err := strconv.Atoi(index)
@@ -138,6 +143,17 @@ func (c *csgoItems) getStickerkits() (map[string]*Stickerkit, error) {
 		// if no item_name, or item_name indicates that item isn't a sticker kit
 		if val, ok := mKit["item_name"].(string); !ok || !strings.HasPrefix(val, "#StickerKit_") {
 			continue
+		}
+
+		// As graffiti is stored as StickerKits, we need to filter them out which is done by ID ("name")
+		if val, ok := mKit["name"].(string); !ok {
+			continue
+		} else {
+			for suffix, _ := range excludedStickerkitIdSuffixes {
+				if strings.HasSuffix(val, suffix) {
+					continue StickerkitLoop
+				}
+			}
 		}
 
 		converted, err := mapToStickerkit(iIndex, mKit, c.language)
