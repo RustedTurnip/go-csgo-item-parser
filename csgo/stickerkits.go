@@ -31,6 +31,12 @@ var (
 		func(s string) bool {
 			return strings.HasPrefix(s, "spray_")
 		},
+		func(s string) bool {
+			return strings.Contains(s, "_teampatch_")
+		},
+		func(s string) bool {
+			return strings.HasPrefix(s, "patch_")
+		},
 	}
 
 	stickerVariantIdSuffixes = map[string]stickerVariant{
