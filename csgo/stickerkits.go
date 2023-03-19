@@ -21,8 +21,16 @@ const (
 )
 
 var (
-	excludedStickerkitIdSuffixes = map[string]interface{}{
-		"_graffiti": struct{}{},
+
+	// excludedStickerkitFuncs is an array of funcs that return true if Stickerkit should be
+	// excluded from the final Stickerkit list
+	excludedStickerkitFuncs = []func(string) bool{
+		func(s string) bool {
+			return strings.HasSuffix(s, "_graffiti")
+		},
+		func(s string) bool {
+			return strings.HasPrefix(s, "spray_")
+		},
 	}
 
 	stickerVariantIdSuffixes = map[string]stickerVariant{
@@ -149,8 +157,8 @@ StickerkitLoop:
 		if val, ok := mKit["name"].(string); !ok {
 			continue
 		} else {
-			for suffix, _ := range excludedStickerkitIdSuffixes {
-				if strings.HasSuffix(val, suffix) {
+			for _, fn := range excludedStickerkitFuncs {
+				if fn(val) {
 					continue StickerkitLoop
 				}
 			}
