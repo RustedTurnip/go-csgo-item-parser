@@ -1,27 +1,29 @@
 package csgo
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 )
 
 // itemPrefab represents a Csgo prefab which is used to categorise item
 // types. e.g. melee, primary (both of which are Guns).
 type itemPrefab struct {
-	id           string
-	parentPrefab string
-	name         string
-	description  string
+	id            string
+	parentPrefabs []string
+	name          string
+	description   string
+	itemGearSlot  string
 }
 
 // mapToItemPrefab converts the provided map (data) into a prefab object.
 func mapToItemPrefab(id string, data map[string]interface{}, language *language) (*itemPrefab, error) {
-
 	response := &itemPrefab{
 		id: id,
 	}
 
 	if val, ok := data["prefab"].(string); ok {
-		response.parentPrefab = val
+		response.parentPrefabs = strings.Split(val, " ")
 	}
 
 	if val, ok := data["item_name"].(string); ok {
@@ -34,13 +36,14 @@ func mapToItemPrefab(id string, data map[string]interface{}, language *language)
 		response.description = lang
 	}
 
+	response.itemGearSlot, _ = data["item_gear_slot"].(string)
+
 	return response, nil
 }
 
 // getItemPrefabs retrieves all required prefabs from the provided items
 // map and returns them in the format map[prefabId]itemPrefab.
 func (c *csgoItems) getItemPrefabs() (map[string]*itemPrefab, error) {
-
 	response := make(map[string]*itemPrefab)
 
 	prefabs, err := crawlToType[map[string]interface{}](c.items, "prefabs")

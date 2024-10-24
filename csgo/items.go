@@ -3,6 +3,7 @@ package csgo
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -13,7 +14,6 @@ var (
 	// itemPrefabPrefabs provides a mapping of recognised prefab types, to their corresponding
 	// item identifying function.
 	itemPrefabPrefabs = map[string]prefabItemConverter{
-
 		"primary": func(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
 			return mapToWeapon(index, data, items.prefabs, items.language)
 		},
@@ -30,6 +30,18 @@ var (
 			return mapToGloves(index, data, items.language)
 		},
 
+		"equipment": func(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
+			pfID, _ := data["prefab"].(string)
+
+			// some equipment items are weapons, checking for item gear slot
+			// differentiates between them
+			if pf, _ := items.prefabs[pfID]; pf.itemGearSlot == "melee" {
+				return mapToWeapon(index, data, items.prefabs, items.language)
+			}
+
+			return mapToEquipment(index, data, items.language)
+		},
+
 		"weapon_case": func(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
 			return mapToWeaponCrate(index, data, items.language)
 		},
@@ -39,7 +51,6 @@ var (
 		},
 
 		"weapon_case_base": func(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
-
 			// weapon crate cast
 			if _, err := crawlToType[string](data, "tags", "ItemSet", "tag_value"); err == nil {
 				return mapToWeaponCrate(index, data, items.language)
@@ -86,6 +97,7 @@ type itemContainer struct {
 	weapons         map[string]*Weapon
 	knives          map[string]*Weapon
 	gloves          map[string]*Gloves
+	equipment       map[string]*Equipment
 	crates          map[string]*WeaponCrate
 	stickerCapsules map[string]*StickerCapsule
 }
@@ -101,7 +113,6 @@ type Weapon struct {
 // mapToWeapon converts the provided map into a Weapon providing
 // all required parameters are present and of the correct type.
 func mapToWeapon(index int, data map[string]interface{}, prefabs map[string]*itemPrefab, language *language) (*Weapon, error) {
-
 	response := &Weapon{
 		Index: index,
 	}
@@ -135,14 +146,61 @@ func mapToWeapon(index int, data map[string]interface{}, prefabs map[string]*ite
 
 	// get info from prefab where missing
 	if val, ok := data["prefab"].(string); ok {
+		spl := strings.Split(val, " ")
 
 		if response.Name == "" {
-			response.Name = prefabs[val].name
+			response.Name = prefabs[spl[0]].name
 		}
 
 		if response.Description == "" {
-			response.Description = prefabs[val].description
+			response.Description = prefabs[spl[0]].description
 		}
+	}
+
+	return response, nil
+}
+
+// Equipment represents miscellaneous items in game that don't
+// constitute weapons.
+type Equipment struct {
+	Id          string `json:"id"`
+	Index       int    `json:"index"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+// mapToWeapon converts the provided map into a Weapon providing
+// all required parameters are present and of the correct type.
+func mapToEquipment(index int, data map[string]interface{}, language *language) (*Equipment, error) {
+	response := &Equipment{
+		Index: index,
+	}
+
+	// get Name
+	if val, err := crawlToType[string](data, "name"); err != nil {
+		return nil, errors.New("Id (name) missing from Equipment")
+	} else {
+		response.Id = val
+	}
+
+	// get language Name Id
+	if val, err := crawlToType[string](data, "item_name"); err == nil {
+		lang, err := language.lookup(val)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to crawl equipment item to path: item_name")
+		}
+
+		response.Name = lang
+	}
+
+	// get language Description Id
+	if val, err := crawlToType[string](data, "item_description"); err == nil {
+		lang, err := language.lookup(val)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to crawl equipment item to path: item_description")
+		}
+
+		response.Description = lang
 	}
 
 	return response, nil
@@ -159,7 +217,6 @@ type Gloves struct {
 // mapToGloves converts the provided map into Gloves providing
 // all required parameters are present and of the correct type.
 func mapToGloves(index int, data map[string]interface{}, language *language) (*Gloves, error) {
-
 	response := &Gloves{
 		Index: index,
 	}
@@ -210,7 +267,6 @@ type WeaponCrate struct {
 // mapToWeaponCrate converts the provided map into a WeaponCrate providing
 // all required parameters are present and of the correct type.
 func mapToWeaponCrate(index int, data map[string]interface{}, language *language) (*WeaponCrate, error) {
-
 	response := &WeaponCrate{
 		Index:             index,
 		QualityCapability: QualityNormal,
@@ -283,7 +339,6 @@ type StickerCapsule struct {
 // mapToStickerCapsule converts the provided map into a StickerCapsule providing
 // all required parameters are present and of the correct type.
 func mapToStickerCapsule(index int, data map[string]interface{}, stickers []string, language *language) (*StickerCapsule, error) {
-
 	response := &StickerCapsule{
 		Index:       index,
 		StickerKits: stickers,
@@ -320,11 +375,11 @@ func mapToStickerCapsule(index int, data map[string]interface{}, stickers []stri
 //
 // All items are returned within the itemContainer part of the response.
 func (c *csgoItems) getItems() (*itemContainer, error) {
-
 	response := &itemContainer{
 		weapons:         make(map[string]*Weapon),
 		knives:          make(map[string]*Weapon),
 		gloves:          make(map[string]*Gloves),
+		equipment:       make(map[string]*Equipment),
 		crates:          make(map[string]*WeaponCrate),
 		stickerCapsules: make(map[string]*StickerCapsule),
 	}
@@ -335,7 +390,6 @@ func (c *csgoItems) getItems() (*itemContainer, error) {
 	}
 
 	for index, itemData := range items {
-
 		if index == "default" {
 			continue
 		}
@@ -355,25 +409,26 @@ func (c *csgoItems) getItems() (*itemContainer, error) {
 			return nil, err
 		}
 
-		switch converted.(type) {
-
+		switch t := converted.(type) {
 		case *Weapon:
 			if itemMap["prefab"].(string) == "melee_unusual" {
-				response.knives[converted.(*Weapon).Id] = converted.(*Weapon)
+				response.knives[t.Id] = t
 				continue
 			}
 
-			response.weapons[converted.(*Weapon).Id] = converted.(*Weapon)
+			response.weapons[t.Id] = t
 
 		case *Gloves:
-			response.gloves[converted.(*Gloves).Id] = converted.(*Gloves)
+			response.gloves[t.Id] = t
+
+		case *Equipment:
+			response.equipment[t.Id] = t
 
 		case *WeaponCrate:
-			response.crates[converted.(*WeaponCrate).Id] = converted.(*WeaponCrate)
+			response.crates[t.Id] = t
 
 		case *StickerCapsule:
-			response.stickerCapsules[converted.(*StickerCapsule).Id] = converted.(*StickerCapsule)
-
+			response.stickerCapsules[t.Id] = t
 		}
 	}
 
@@ -383,7 +438,6 @@ func (c *csgoItems) getItems() (*itemContainer, error) {
 // getItemType attempts to identify an items_game.txt item by assessing its prefab
 // (where applicable) or otherwise assessing the contained fields.
 func convertItem(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
-
 	prefab, ok := data["prefab"].(string)
 	if !ok {
 		return nil, nil
@@ -400,7 +454,6 @@ func convertItem(items *csgoItems, index int, data map[string]interface{}) (inte
 // getPrefabConversionFunc attempts to identify the correct conversion function for the item data map
 // from the item's prefab.
 func getPrefabConversionFunc(prefabId string, prefabs map[string]*itemPrefab) prefabItemConverter {
-
 	if converter, ok := itemPrefabPrefabs[prefabId]; ok {
 		return converter
 	}
@@ -412,11 +465,18 @@ func getPrefabConversionFunc(prefabId string, prefabs map[string]*itemPrefab) pr
 		return nil
 	}
 
-	// if at root of prefab tree, return unknown
-	if prefab.parentPrefab == "" {
-		return nil
+	for _, parent := range prefab.parentPrefabs {
+		// if prefab item type is unknown, but prefab has parent, crawl further
+		c := getPrefabConversionFunc(parent, prefabs)
+		if c == nil {
+			// if not found with this parent, move onto the next parent (prefabs can have multiple parents)
+			continue
+		}
+
+		return c
 	}
 
-	// if prefab item type is unknown, but prefab has parent, crawl further
-	return getPrefabConversionFunc(prefab.parentPrefab, prefabs)
+	// at this point, we have gotten to the roots of each parent prefab without finding anything
+	// so return with an unknown response
+	return nil
 }

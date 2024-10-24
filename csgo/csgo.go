@@ -76,6 +76,7 @@ func New(languageData, itemData map[string]interface{}) (*Csgo, error) {
 		Guns:            itemEntities.weapons,
 		Knives:          itemEntities.knives,
 		Gloves:          itemEntities.gloves,
+		Equipment:       itemEntities.equipment,
 		WeaponCrates:    itemEntities.crates,
 		StickerCapsules: itemEntities.stickerCapsules,
 	}, nil
@@ -190,6 +191,7 @@ type Csgo struct {
 	Guns            map[string]*Weapon         `json:"Guns"`
 	Knives          map[string]*Weapon         `json:"Knives"`
 	Gloves          map[string]*Gloves         `json:"Gloves"`
+	Equipment       map[string]*Equipment      `json:"Equipment"`
 	WeaponCrates    map[string]*WeaponCrate    `json:"WeaponCrates"`
 	StickerCapsules map[string]*StickerCapsule `json:"StickerCapsules"`
 }
