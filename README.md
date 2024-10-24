@@ -14,6 +14,7 @@ Currently, the parser supports extraction of the following item types:
 - skinnable weapons (guns)
 - skinnable weapons (knives)
 - skinnable gloves
+- equipment
 - weapon sets
 - weapon crates
 
