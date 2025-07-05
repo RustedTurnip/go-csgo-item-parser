@@ -79,6 +79,10 @@ var (
 
 			return nil, nil
 		},
+
+		"csgo_tool": func(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
+			return mapToTool(index, data, items.language)
+		},
 	}
 )
 
@@ -100,6 +104,7 @@ type itemContainer struct {
 	equipment       map[string]*Equipment
 	crates          map[string]*WeaponCrate
 	stickerCapsules map[string]*StickerCapsule
+	tools           map[string]*Tool
 }
 
 // Weapon represents a skinnable item that is also a Weapon in Csgo.
@@ -370,6 +375,43 @@ func mapToStickerCapsule(index int, data map[string]interface{}, stickers []stri
 	return response, nil
 }
 
+type Tool struct {
+	Id    string `json:"id"`
+	Index int    `json:"index"`
+	Name  string `json:"name"`
+}
+
+func mapToTool(index int, data map[string]interface{}, language *language) (*Tool, error) {
+	response := &Tool{
+		Index: index,
+	}
+	if val, err := crawlToType[string](data, "name"); err != nil {
+		return nil, errors.Wrap(err, "unable to crawl Tool item to path: name")
+	} else {
+		response.Id = val
+	}
+
+	if val, err := crawlToType[string](data, "item_type_name"); err == nil {
+		lang, _ := language.lookup(val)
+		if lang == "" {
+			lang, _ = language.lookup(val[1:])
+		}
+		response.Name = lang
+	} else if val, err := crawlToType[string](data, "item_name"); err == nil {
+		lang, _ := language.lookup(val)
+		if lang == "" {
+			lang, _ = language.lookup(val[1:])
+		}
+		response.Name = lang
+	}
+
+	if response.Name == "" {
+		return nil, errors.New("unable to locate Tools's language Name Id" + fmt.Sprintf("%+v", response))
+	}
+
+	return response, nil
+}
+
 // getItems processes the provided items data and, based on the item's prefab,
 // produces the relevant item (e.g. Gloves, Weapon, or crate).
 //
@@ -382,6 +424,7 @@ func (c *csgoItems) getItems() (*itemContainer, error) {
 		equipment:       make(map[string]*Equipment),
 		crates:          make(map[string]*WeaponCrate),
 		stickerCapsules: make(map[string]*StickerCapsule),
+		tools:           make(map[string]*Tool),
 	}
 
 	items, err := crawlToType[map[string]interface{}](c.items, "items")
@@ -429,6 +472,9 @@ func (c *csgoItems) getItems() (*itemContainer, error) {
 
 		case *StickerCapsule:
 			response.stickerCapsules[t.Id] = t
+
+		case *Tool:
+			response.tools[t.Id] = t
 		}
 	}
 
