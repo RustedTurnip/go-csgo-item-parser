@@ -83,6 +83,9 @@ var (
 		"csgo_tool": func(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
 			return mapToTool(index, data, items.language)
 		},
+		"customplayertradable": func(items *csgoItems, index int, data map[string]interface{}) (interface{}, error) {
+			return mapToCharacter(index, data, items.language)
+		},
 	}
 )
 
@@ -105,6 +108,7 @@ type itemContainer struct {
 	crates          map[string]*WeaponCrate
 	stickerCapsules map[string]*StickerCapsule
 	tools           map[string]*Tool
+	characters      map[string]*Character
 }
 
 // Weapon represents a skinnable item that is also a Weapon in Csgo.
@@ -375,12 +379,15 @@ func mapToStickerCapsule(index int, data map[string]interface{}, stickers []stri
 	return response, nil
 }
 
+// Tool represents consumable inventory only items
 type Tool struct {
 	Id    string `json:"id"`
 	Index int    `json:"index"`
 	Name  string `json:"name"`
 }
 
+// mapToTool converts the provided map into a Tool providing
+// all required parameters are present and of the correct type.
 func mapToTool(index int, data map[string]interface{}, language *language) (*Tool, error) {
 	response := &Tool{
 		Index: index,
@@ -412,6 +419,54 @@ func mapToTool(index int, data map[string]interface{}, language *language) (*Too
 	return response, nil
 }
 
+// Character represents a skin that a player can use ingame
+type Character struct {
+	Id          string `json:"id"`
+	Index       int    `json:"index"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	RarityId    string `json:"rarityId"`
+}
+
+// mapToCharacter converts the provided map into a Character providing
+// all required parameters are present and of the correct type.
+func mapToCharacter(index int, data map[string]interface{}, language *language) (*Character, error) {
+	response := &Character{
+		Index: index,
+	}
+	if val, err := crawlToType[string](data, "name"); err != nil {
+		return nil, errors.Wrap(err, "unable to crawl Tool item to path: name")
+	} else {
+		response.Id = val
+	}
+
+	if val, err := crawlToType[string](data, "item_name"); err == nil {
+		lang, _ := language.lookup(val[1:])
+		response.Name = lang
+	}
+
+	if val, err := crawlToType[string](data, "item_description"); err == nil {
+		lang, _ := language.lookup(val[1:])
+		response.Description = lang
+	}
+
+	if val, err := crawlToType[string](data, "item_rarity"); err == nil {
+		response.RarityId = val
+	}
+
+	if response.Name == "" {
+		return nil, errors.New("unable to locate Character's language Name Id" + fmt.Sprintf("%+v", response))
+	}
+	if response.Description == "" {
+		return nil, errors.New("unable to locate Character's language Description Id" + fmt.Sprintf("%+v", response))
+	}
+	if response.RarityId == "" {
+		return nil, errors.New("unable to locate Character's language Rarity Id" + fmt.Sprintf("%+v", response))
+	}
+
+	return response, nil
+}
+
 // getItems processes the provided items data and, based on the item's prefab,
 // produces the relevant item (e.g. Gloves, Weapon, or crate).
 //
@@ -425,6 +480,7 @@ func (c *csgoItems) getItems() (*itemContainer, error) {
 		crates:          make(map[string]*WeaponCrate),
 		stickerCapsules: make(map[string]*StickerCapsule),
 		tools:           make(map[string]*Tool),
+		characters:      make(map[string]*Character),
 	}
 
 	items, err := crawlToType[map[string]interface{}](c.items, "items")
@@ -475,6 +531,9 @@ func (c *csgoItems) getItems() (*itemContainer, error) {
 
 		case *Tool:
 			response.tools[t.Id] = t
+
+		case *Character:
+			response.characters[t.Id] = t
 		}
 	}
 
