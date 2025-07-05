@@ -36,7 +36,7 @@ func New(languageData, itemData map[string]interface{}) (*Csgo, error) {
 		return nil, err
 	}
 
-	stickerkits, err := items.getStickerkits()
+	stickerEnteties, err := items.getStickerkits()
 	if err != nil {
 		return nil, err
 	}
@@ -66,12 +66,15 @@ func New(languageData, itemData map[string]interface{}) (*Csgo, error) {
 	}
 
 	return &Csgo{
-		Rarities:    rarities,
-		Paintkits:   paintkits,
-		Stickerkits: stickerkits,
-		WeaponSets:  weaponSets,
-		KnifeSet:    knifeSet,
-		GloveSet:    gloveSet,
+		Rarities:   rarities,
+		Paintkits:  paintkits,
+		WeaponSets: weaponSets,
+		KnifeSet:   knifeSet,
+		GloveSet:   gloveSet,
+
+		Stickerkits: stickerEnteties.stickers,
+		Spraykits:   stickerEnteties.sprays,
+		Patchkits:   stickerEnteties.patches,
 
 		Guns:            itemEntities.weapons,
 		Knives:          itemEntities.knives,
@@ -181,12 +184,16 @@ func newCsgoItems(itemData map[string]interface{}, language *language) (*csgoIte
 type Csgo struct {
 
 	// CSGO types
-	Rarities    map[string]*Rarity     `json:"Rarities"`
-	Paintkits   map[string]*Paintkit   `json:"Paintkits"`
+	Rarities   map[string]*Rarity    `json:"Rarities"`
+	Paintkits  map[string]*Paintkit  `json:"Paintkits"`
+	WeaponSets map[string]*WeaponSet `json:"WeaponSets"`
+	KnifeSet   map[string][]string   `json:"KnifeSet"`
+	GloveSet   map[string][]string   `json:"GloveSet"`
+
+	// Sticker subtypes
 	Stickerkits map[string]*Stickerkit `json:"Stickerkits"`
-	WeaponSets  map[string]*WeaponSet  `json:"WeaponSets"`
-	KnifeSet    map[string][]string    `json:"KnifeSet"`
-	GloveSet    map[string][]string    `json:"GloveSet"`
+	Spraykits   map[string]*Spraykit   `json:"Spraykits"`
+	Patchkits   map[string]*Patchkit   `json:"Patchkits"`
 
 	// items
 	Guns            map[string]*Weapon         `json:"Guns"`

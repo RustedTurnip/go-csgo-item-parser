@@ -21,24 +21,6 @@ const (
 )
 
 var (
-
-	// excludedStickerkitFuncs is an array of funcs that return true if Stickerkit should be
-	// excluded from the final Stickerkit list
-	excludedStickerkitFuncs = []func(string) bool{
-		func(s string) bool {
-			return strings.HasSuffix(s, "_graffiti")
-		},
-		func(s string) bool {
-			return strings.HasPrefix(s, "spray_")
-		},
-		func(s string) bool {
-			return strings.Contains(s, "_teampatch_")
-		},
-		func(s string) bool {
-			return strings.HasPrefix(s, "patch_")
-		},
-	}
-
 	stickerVariantIdSuffixes = map[string]stickerVariant{
 		"_paper":      stickerVariantPaper,
 		"_glossy":     stickerVariantGlossy,
@@ -57,6 +39,12 @@ var (
 		"(Lenticular)": stickerVariantLenticular,
 	}
 )
+
+type stickerSubtypeContainer struct {
+	stickers map[string]*Stickerkit
+	sprays   map[string]*Spraykit
+	patches  map[string]*Patchkit
+}
 
 // Stickerkit represents a Stickerkit object from the items_game file.
 type Stickerkit struct {
@@ -130,18 +118,137 @@ func mapToStickerkit(index int, data map[string]interface{}, language *language)
 	return response, nil
 }
 
-// getStickerkits retrieves all the Stickerkits available in the provided items map
-// and returns them in the format map[stickerkitId]Stickerkit.
-func (c *csgoItems) getStickerkits() (map[string]*Stickerkit, error) {
+// Spraykits are also stored as stickers in items_game, parsed into a separate container
+type Spraykit struct {
+	Id          string `json:"id"`
+	Index       int    `json:"index"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	RarityId    string `json:"rarityId"`
+}
 
-	response := make(map[string]*Stickerkit)
+// mapToSpraykit converts the provided data map into a Spraykit object.
+func mapToSpraykit(index int, data map[string]interface{}, language *language) (*Spraykit, error) {
+
+	response := &Spraykit{
+		Index: index,
+	}
+
+	// get Name
+	if val, err := crawlToType[string](data, "name"); err != nil {
+		return nil, errors.Wrap(err, "Id (name) missing from SprayKit")
+	} else {
+		response.Id = val
+	}
+
+	// get language Name
+	if val, err := crawlToType[string](data, "item_name"); err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("item_name missing from SprayKit (%s)", response.Id))
+	} else {
+
+		lang, _ := language.lookup(val)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("language lookup of item_name for SprayKit failed for key %s", val))
+		}
+
+		response.Name = lang
+	}
+
+	// get language Description
+	if val, err := crawlToType[string](data, "description_string"); err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("description_string missing from SprayKit (%s)", response.Id))
+	} else {
+		lang, _ := language.lookup(val[1:])
+		response.Description = lang
+	}
+
+	// get Rarity
+	if val, err := crawlToType[string](data, "item_rarity"); err == nil {
+		response.RarityId = val
+	}
+
+	return response, nil
+}
+
+// Patchkits are also stored as stickers in items_game, parsed into a separate container
+type Patchkit struct {
+	Id          string `json:"id"`
+	Index       int    `json:"index"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	RarityId    string `json:"rarityId"`
+}
+
+// mapToPathkit converts the provided data map into a Patchkit object.
+func mapToPathkit(index int, data map[string]interface{}, language *language) (*Patchkit, error) {
+
+	response := &Patchkit{
+		Index: index,
+	}
+
+	// get Name
+	if val, err := crawlToType[string](data, "name"); err != nil {
+		return nil, errors.Wrap(err, "Id (name) missing from SprayKit")
+	} else {
+		response.Id = val
+	}
+
+	// get language Name
+	if val, err := crawlToType[string](data, "item_name"); err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("item_name missing from SprayKit (%s)", response.Id))
+	} else {
+
+		lang, _ := language.lookup(val)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("language lookup of item_name for SprayKit failed for key %s", val))
+		}
+
+		response.Name = lang
+	}
+
+	// get language Description
+	if val, err := crawlToType[string](data, "description_string"); err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("description_string missing from SprayKit (%s)", response.Id))
+	} else {
+		lang, _ := language.lookup(val[1:])
+		response.Description = lang
+	}
+
+	// get Rarity
+	if val, err := crawlToType[string](data, "item_rarity"); err == nil {
+		response.RarityId = val
+	}
+
+	return response, nil
+}
+
+// stickerSubtypeMapper chooses what function to use for sticker subtype classification
+// return the converted sticker to caller
+func stickerSubtypeMapper(index int, name string, data map[string]interface{}, language *language) (interface{}, error) {
+	if strings.HasSuffix(name, "_graffiti") || strings.HasPrefix(name, "spray_") {
+		return mapToSpraykit(index, data, language)
+	} else if strings.Contains(name, "_teampatch_") || strings.HasPrefix(name, "patch_") {
+		return mapToPathkit(index, data, language)
+	} else {
+		return mapToStickerkit(index, data, language)
+	}
+}
+
+// getStickerkits retrieves all the stickerSubtypeContainer entries that are available
+// in the provided items map and returns them.
+func (c *csgoItems) getStickerkits() (*stickerSubtypeContainer, error) {
+
+	response := &stickerSubtypeContainer{
+		stickers: make(map[string]*Stickerkit),
+		sprays:   make(map[string]*Spraykit),
+		patches:  make(map[string]*Patchkit),
+	}
 
 	kits, err := crawlToType[map[string]interface{}](c.items, "sticker_kits")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to locate sticker_kits in provided items")
 	}
 
-StickerkitLoop:
 	for index, kit := range kits {
 
 		iIndex, err := strconv.Atoi(index)
@@ -159,23 +266,28 @@ StickerkitLoop:
 			continue
 		}
 
-		// As graffiti is stored as StickerKits, we need to filter them out which is done by ID ("name")
-		if val, ok := mKit["name"].(string); !ok {
+		// get the name to see what subtype it is
+		name, ok := mKit["name"].(string)
+		if !ok {
 			continue
-		} else {
-			for _, fn := range excludedStickerkitFuncs {
-				if fn(val) {
-					continue StickerkitLoop
-				}
-			}
 		}
 
-		converted, err := mapToStickerkit(iIndex, mKit, c.language)
+		// convert to a stickerSubtype
+		converted, err := stickerSubtypeMapper(iIndex, name, mKit, c.language)
 		if err != nil {
 			return nil, err
 		}
 
-		response[converted.Id] = converted
+		switch t := converted.(type) {
+		case *Stickerkit:
+			response.stickers[t.Id] = t
+
+		case *Spraykit:
+			response.sprays[t.Id] = t
+
+		case *Patchkit:
+			response.patches[t.Id] = t
+		}
 	}
 
 	return response, nil
