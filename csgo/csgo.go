@@ -46,6 +46,11 @@ func New(languageData, itemData map[string]interface{}) (*Csgo, error) {
 		return nil, err
 	}
 
+	musickits, err := items.getMusickits()
+	if err != nil {
+		return nil, err
+	}
+
 	stickerEnteties, err := items.getStickerkits()
 	if err != nil {
 		return nil, err
@@ -80,6 +85,7 @@ func New(languageData, itemData map[string]interface{}) (*Csgo, error) {
 		Qualities:  qualities,
 		Paintkits:  paintkits,
 		Keychains:  keychains,
+		Musickits:  musickits,
 		WeaponSets: weaponSets,
 		KnifeSet:   knifeSet,
 		GloveSet:   gloveSet,
@@ -201,6 +207,7 @@ type Csgo struct {
 	Qualities  map[string]*Quality   `json:"Qualities"`
 	Paintkits  map[string]*Paintkit  `json:"Paintkits"`
 	Keychains  map[string]*Keychain  `json:"Keychains"`
+	Musickits  map[string]*Musickit  `json:"Musickit"`
 	WeaponSets map[string]*WeaponSet `json:"WeaponSets"`
 	KnifeSet   map[string][]string   `json:"KnifeSet"`
 	GloveSet   map[string][]string   `json:"GloveSet"`
