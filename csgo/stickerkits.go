@@ -261,11 +261,6 @@ func (c *csgoItems) getStickerkits() (*stickerSubtypeContainer, error) {
 			return nil, fmt.Errorf("unexpected Stickerkit layout in sticker_kits (at index %s)", index)
 		}
 
-		// if no item_name, or item_name indicates that item isn't a sticker kit
-		if val, ok := mKit["item_name"].(string); !ok || !strings.HasPrefix(val, "#StickerKit_") {
-			continue
-		}
-
 		// get the name to see what subtype it is
 		name, ok := mKit["name"].(string)
 		if !ok {
