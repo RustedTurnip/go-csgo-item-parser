@@ -12,6 +12,7 @@ type Quality struct {
 	Index    int    `json:"value"`
 	Weight   int    `json:"weight"`
 	HexColor string `json:"hexColor"`
+	Name     string `json:"name"`
 }
 
 func mapToQuality(id string, data map[string]interface{}, language *language) (*Quality, error) {
@@ -45,6 +46,8 @@ func mapToQuality(id string, data map[string]interface{}, language *language) (*
 	} else {
 		return nil, fmt.Errorf("quality (%s) missing expected field \"hexColor\"", response.Id)
 	}
+
+	response.Name, _ = language.lookup(id)
 
 	return response, nil
 }
