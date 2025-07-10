@@ -398,13 +398,13 @@ func mapToTool(index int, data map[string]interface{}, language *language) (*Too
 		response.Id = val
 	}
 
-	if val, err := crawlToType[string](data, "item_type_name"); err == nil {
+	if val, err := crawlToType[string](data, "item_name"); err == nil {
 		lang, _ := language.lookup(val)
 		if lang == "" {
 			lang, _ = language.lookup(val[1:])
 		}
 		response.Name = lang
-	} else if val, err := crawlToType[string](data, "item_name"); err == nil {
+	} else if val, err := crawlToType[string](data, "item_type_name"); err == nil {
 		lang, _ := language.lookup(val)
 		if lang == "" {
 			lang, _ = language.lookup(val[1:])
