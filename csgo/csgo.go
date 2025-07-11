@@ -51,7 +51,7 @@ func New(languageData, itemData map[string]interface{}) (*Csgo, error) {
 		return nil, err
 	}
 
-	stickerEnteties, err := items.getStickerkits()
+	stickerEnteties, err := items.getStickerEnteties()
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func New(languageData, itemData map[string]interface{}) (*Csgo, error) {
 		StickerCapsules: itemEntities.stickerCapsules,
 		Tools:           itemEntities.tools,
 		Characters:      itemEntities.characters,
-		Collectables:    itemEntities.collectables,
+		Collectables:    itemEntities.collectibles,
 	}, nil
 }
 

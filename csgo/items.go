@@ -118,7 +118,7 @@ type itemContainer struct {
 	stickerCapsules map[string]*StickerCapsule
 	tools           map[string]*Tool
 	characters      map[string]*Character
-	collectables    map[string]*Collectible
+	collectibles    map[string]*Collectible
 }
 
 // Weapon represents a skinnable item that is also a Weapon in Csgo.
@@ -423,7 +423,7 @@ func mapToTool(index int, data map[string]interface{}, language *language) (*Too
 	}
 
 	if response.Name == "" {
-		return nil, errors.New("unable to locate Tools's language Name Id" + fmt.Sprintf("%+v", response))
+		return nil, fmt.Errorf("unable to locate Tools's language Name Id %+v", response)
 	}
 
 	return response, nil
@@ -465,13 +465,13 @@ func mapToCharacter(index int, data map[string]interface{}, language *language) 
 	}
 
 	if response.Name == "" {
-		return nil, errors.New("unable to locate Character's language Name Id" + fmt.Sprintf("%+v", response))
+		return nil, fmt.Errorf("unable to locate Character's language Name Id %+v", response)
 	}
 	if response.Description == "" {
-		return nil, errors.New("unable to locate Character's language Description Id" + fmt.Sprintf("%+v", response))
+		return nil, fmt.Errorf("unable to locate Character's language Description Id %+v", response)
 	}
 	if response.RarityId == "" {
-		return nil, errors.New("unable to locate Character's language Rarity Id" + fmt.Sprintf("%+v", response))
+		return nil, fmt.Errorf("unable to locate Character's language Rarity Id %+v", response)
 	}
 
 	return response, nil
@@ -484,8 +484,8 @@ type Collectible struct {
 	Description string `json:"description"`
 }
 
-// mapToCharacter converts the provided map into a Character providing
-// all required parameters are present and of the correct type.
+// mapToCollectible converts the provided map into a Collectible (pins, trophies)
+// providing all required parameters are present and of the correct type.
 func mapToCollectible(index int, data map[string]interface{}, language *language) (*Collectible, error) {
 	response := &Collectible{
 		Index: index,
@@ -507,7 +507,7 @@ func mapToCollectible(index int, data map[string]interface{}, language *language
 	}
 
 	if response.Name == "" {
-		return nil, errors.New("unable to locate Collectible's language Name Id" + fmt.Sprintf("%+v", response))
+		return nil, fmt.Errorf("unable to locate Collectible's language Name Id %+v", response)
 	}
 
 	return response, nil
@@ -527,7 +527,7 @@ func (c *csgoItems) getItems() (*itemContainer, error) {
 		stickerCapsules: make(map[string]*StickerCapsule),
 		tools:           make(map[string]*Tool),
 		characters:      make(map[string]*Character),
-		collectables:    make(map[string]*Collectible),
+		collectibles:    make(map[string]*Collectible),
 	}
 
 	items, err := crawlToType[map[string]interface{}](c.items, "items")
@@ -583,7 +583,7 @@ func (c *csgoItems) getItems() (*itemContainer, error) {
 			response.characters[t.Id] = t
 
 		case *Collectible:
-			response.collectables[t.Id] = t
+			response.collectibles[t.Id] = t
 		}
 	}
 

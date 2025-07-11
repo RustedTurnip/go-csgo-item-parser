@@ -234,9 +234,9 @@ func stickerSubtypeMapper(index int, name string, data map[string]interface{}, l
 	}
 }
 
-// getStickerkits retrieves all the stickerSubtypeContainer entries that are available
+// getStickerEnteties retrieves all the stickerSubtypeContainer entries that are available
 // in the provided items map and returns them.
-func (c *csgoItems) getStickerkits() (*stickerSubtypeContainer, error) {
+func (c *csgoItems) getStickerEnteties() (*stickerSubtypeContainer, error) {
 
 	response := &stickerSubtypeContainer{
 		stickers: make(map[string]*Stickerkit),
